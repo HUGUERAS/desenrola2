@@ -1,0 +1,35 @@
+{
+    "type": "Feature",
+    "properties": {
+        "nome": "Lote 02 - Vila Nova",
+        "cliente": "Maria Santos",
+        "area_aprox": "250m²"
+    },
+    "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+            [
+                [
+                    -47.9285,
+                    -15.7800
+                ],
+                [
+                    -47.9280,
+                    -15.7800
+                ],
+                [
+                    -47.9280,
+                    -15.7805
+                ],
+                [
+                    -47.9285,
+                    -15.7805
+                ],
+                [
+                    -47.9285,
+                    -15.7800
+                ]
+            ]
+        ]
+    }
+}

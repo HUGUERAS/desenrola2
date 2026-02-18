@@ -1,0 +1,145 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "properties": {
+                "id": 1,
+                "nome": "Lote 01",
+                "cliente": "João Silva"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            -47.9290,
+                            -15.7800
+                        ],
+                        [
+                            -47.9285,
+                            -15.7800
+                        ],
+                        [
+                            -47.9285,
+                            -15.7805
+                        ],
+                        [
+                            -47.9290,
+                            -15.7805
+                        ],
+                        [
+                            -47.9290,
+                            -15.7800
+                        ]
+                    ]
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "id": 2,
+                "nome": "Lote 02",
+                "cliente": "Maria Santos"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            -47.9285,
+                            -15.7800
+                        ],
+                        [
+                            -47.9280,
+                            -15.7800
+                        ],
+                        [
+                            -47.9280,
+                            -15.7805
+                        ],
+                        [
+                            -47.9285,
+                            -15.7805
+                        ],
+                        [
+                            -47.9285,
+                            -15.7800
+                        ]
+                    ]
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "id": 3,
+                "nome": "Lote 03",
+                "cliente": "Pedro Oliveira"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            -47.9280,
+                            -15.7800
+                        ],
+                        [
+                            -47.9275,
+                            -15.7800
+                        ],
+                        [
+                            -47.9275,
+                            -15.7805
+                        ],
+                        [
+                            -47.9280,
+                            -15.7805
+                        ],
+                        [
+                            -47.9280,
+                            -15.7800
+                        ]
+                    ]
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "id": 4,
+                "nome": "Lote 04",
+                "cliente": "Ana Costa"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            -47.9290,
+                            -15.7805
+                        ],
+                        [
+                            -47.9285,
+                            -15.7805
+                        ],
+                        [
+                            -47.9285,
+                            -15.7810
+                        ],
+                        [
+                            -47.9290,
+                            -15.7810
+                        ],
+                        [
+                            -47.9290,
+                            -15.7805
+                        ]
+                    ]
+                ]
+            }
+        }
+    ]
+}

@@ -1,0 +1,162 @@
+/**
+ * ProjetosPanel — CRUD de projetos no sidebar
+ */
+import { useState, useEffect } from 'react';
+import { useApp } from '../../pages/AppShell';
+import apiClient from '../../services/api';
+import { FolderOpen, Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
+
+interface Projeto {
+    id: number;
+    nome: string;
+    descricao?: string;
+    tipo: string;
+    status: string;
+    criado_em?: string;
+}
+
+export default function ProjetosPanel() {
+    const { setProjetoAtual, setPanel } = useApp();
+    const [projetos, setProjetos] = useState<Projeto[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [showForm, setShowForm] = useState(false);
+    const [editId, setEditId] = useState<number | null>(null);
+    const [formData, setFormData] = useState({ nome: '', descricao: '', tipo: 'INDIVIDUAL' });
+
+    const carregar = async () => {
+        setLoading(true);
+        setError('');
+        try {
+            const res = await apiClient.getProjects();
+            if (res.data) setProjetos(res.data as unknown as Projeto[]);
+            else setError(res.error || 'Erro ao carregar');
+        } catch {
+            setError('Erro de conexão');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => { carregar(); }, []);
+
+    const salvar = async () => {
+        try {
+            if (editId) {
+                await apiClient.updateProject(editId, formData);
+            } else {
+                await apiClient.createProject(formData);
+            }
+            setShowForm(false);
+            setEditId(null);
+            setFormData({ nome: '', descricao: '', tipo: 'INDIVIDUAL' });
+            carregar();
+        } catch {
+            setError('Erro ao salvar');
+        }
+    };
+
+    const excluir = async (id: number) => {
+        if (!confirm('Excluir projeto?')) return;
+        try {
+            await apiClient.deleteProject(id);
+            carregar();
+        } catch {
+            setError('Erro ao excluir');
+        }
+    };
+
+    const editar = (p: Projeto) => {
+        setEditId(p.id);
+        setFormData({ nome: p.nome, descricao: p.descricao || '', tipo: p.tipo });
+        setShowForm(true);
+    };
+
+    const selecionar = (p: Projeto) => {
+        setProjetoAtual(p);
+        setPanel('lotes');
+    };
+
+    const statusColor: Record<string, string> = {
+        RASCUNHO: '#94a3b8',
+        EM_ANDAMENTO: '#3b82f6',
+        CONCLUIDO: '#10b981',
+        ARQUIVADO: '#6b7280',
+    };
+
+    if (loading) return <div className="panel-loading"><Loader2 size={20} className="spin" /> Carregando...</div>;
+
+    return (
+        <div className="panel">
+            <div className="panel-header">
+                <h3>📋 Projetos</h3>
+                <button className="panel-btn-sm" onClick={() => { setShowForm(true); setEditId(null); setFormData({ nome: '', descricao: '', tipo: 'INDIVIDUAL' }); }}>
+                    <Plus size={14} /> Novo
+                </button>
+            </div>
+
+            {error && <div className="panel-error">{error}</div>}
+
+            {showForm && (
+                <div className="panel-form">
+                    <input
+                        className="panel-input"
+                        placeholder="Nome do projeto"
+                        value={formData.nome}
+                        onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                    />
+                    <textarea
+                        className="panel-input"
+                        placeholder="Descrição (opcional)"
+                        value={formData.descricao}
+                        onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
+                        rows={2}
+                    />
+                    <select
+                        className="panel-input"
+                        value={formData.tipo}
+                        onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
+                    >
+                        <option value="INDIVIDUAL">Individual</option>
+                        <option value="LOTEAMENTO">Loteamento</option>
+                    </select>
+                    <div className="panel-form-actions">
+                        <button className="panel-btn panel-btn--primary" onClick={salvar}>
+                            {editId ? 'Atualizar' : 'Criar'}
+                        </button>
+                        <button className="panel-btn" onClick={() => { setShowForm(false); setEditId(null); }}>
+                            Cancelar
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            <div className="panel-list">
+                {projetos.length === 0 && !showForm && (
+                    <div className="panel-empty">
+                        <FolderOpen size={24} />
+                        <p>Nenhum projeto</p>
+                    </div>
+                )}
+                {projetos.map((p) => (
+                    <div key={p.id} className="panel-card" onClick={() => selecionar(p)}>
+                        <div className="panel-card-header">
+                            <span className="panel-card-title">{p.nome}</span>
+                            <span className="panel-card-badge" style={{ background: statusColor[p.status] || '#94a3b8' }}>
+                                {p.status}
+                            </span>
+                        </div>
+                        {p.descricao && <p className="panel-card-desc">{p.descricao}</p>}
+                        <div className="panel-card-meta">
+                            <span>{p.tipo}</span>
+                            <div className="panel-card-actions">
+                                <button onClick={(e) => { e.stopPropagation(); editar(p); }}><Pencil size={12} /></button>
+                                <button onClick={(e) => { e.stopPropagation(); excluir(p.id); }}><Trash2 size={12} /></button>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
