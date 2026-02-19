@@ -3,32 +3,35 @@
  * Combina: visualização de lotes + desenho (Sketch) + coordenadas do cursor
  *
  * Usa SRID 4674 (SIRGAS 2000) — visualmente idêntico a 4326.
- * O ArcGIS exibe nativamente em Web Mercator; convertemos para geográfico ao exportar WKT.
+ * O ArcGIS exibe nativamente em Web Mercator; convertemos para geográfico ao exportar GeoJSON.
  */
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import MapView from '@arcgis/core/views/MapView';
 import ArcGISMap from '@arcgis/core/Map';
 import GraphicsLayer from '@arcgis/core/layers/GraphicsLayer';
 import Graphic from '@arcgis/core/Graphic';
 import Polygon from '@arcgis/core/geometry/Polygon';
 import Sketch from '@arcgis/core/widgets/Sketch';
-import BasemapToggle from '@arcgis/core/widgets/BasemapToggle';
-import ScaleBar from '@arcgis/core/widgets/ScaleBar';
+
 import SimpleFillSymbol from '@arcgis/core/symbols/SimpleFillSymbol';
 import SimpleLineSymbol from '@arcgis/core/symbols/SimpleLineSymbol';
 import TextSymbol from '@arcgis/core/symbols/TextSymbol';
 import Point from '@arcgis/core/geometry/Point';
 import * as webMercatorUtils from '@arcgis/core/geometry/support/webMercatorUtils';
 import esriConfig from '@arcgis/core/config';
+import LayerList from "@arcgis/core/widgets/LayerList";
+import Expand from "@arcgis/core/widgets/Expand";
+import * as intl from "@arcgis/core/intl";
 import '@arcgis/core/assets/esri/themes/dark/main.css';
 
 import { useApp } from '../../pages/AppShell';
-import { wktToRings, ringsToWkt, calculateCentroid } from '../../lib/geo-utils';
+import { wktToRings, calculateCentroid, geoJSONToRings, ringsToGeoJSON } from '../../lib/geo-utils';
 
 /* ── Tipos de camada ── */
 export interface LoteGeometry {
     id: number;
     wkt?: string;
+    geojson?: Record<string, any>;
     label?: string;
     type: 'rascunho' | 'oficial' | 'sobreposicao' | 'vizinho' | 'ativo';
 }
@@ -36,7 +39,7 @@ export interface LoteGeometry {
 interface MapContainerProps {
     lotes?: LoteGeometry[];
     drawingEnabled?: boolean;
-    onGeometryChange?: (wkt: string) => void;
+    onGeometryChange?: (geojson: Record<string, any>) => void;
     onLoteClick?: (loteId: number) => void;
 }
 
@@ -78,48 +81,60 @@ export default function MapContainer({
     const { setCursorCoords } = useApp();
     const mapDivRef = useRef<HTMLDivElement>(null);
     const viewRef = useRef<MapView | null>(null);
+    const [mapLoaded, setMapLoaded] = useState(false); // Só para avisar outros effects
     const sketchRef = useRef<Sketch | null>(null);
     const lotesLayerRef = useRef<GraphicsLayer | null>(null);
     const drawLayerRef = useRef<GraphicsLayer | null>(null);
+    const layerListExpandRef = useRef<InstanceType<typeof Expand> | null>(null);
+
+    // Guardar callbacks em refs para evitar recriar o mapa se elas mudarem
+    const onLoteClickRef = useRef(onLoteClick);
+    onLoteClickRef.current = onLoteClick;
+    const setCursorCoordsRef = useRef(setCursorCoords);
+    setCursorCoordsRef.current = setCursorCoords;
+
+    const drawingEnabledRef = useRef(drawingEnabled);
+    drawingEnabledRef.current = drawingEnabled;
 
     // Inicializa mapa uma vez
     useEffect(() => {
-        if (!mapDivRef.current) return;
+        if (!mapDivRef.current || viewRef.current) return;
+
+        console.log('[DEBUG] Montando instância do ArcGIS...');
+
+        esriConfig.assetsPath = '/assets';
+        intl.setLocale("pt-BR");
 
         const apiKey = import.meta.env.VITE_ESRI_API_KEY;
         if (apiKey) esriConfig.apiKey = apiKey;
 
-        const lotesLayer = new GraphicsLayer({ title: 'Lotes' });
-        const drawLayer = new GraphicsLayer({ title: 'Desenho' });
-        lotesLayerRef.current = lotesLayer;
-        drawLayerRef.current = drawLayer;
+        const lotsL = new GraphicsLayer({ title: 'Lotes' });
+        const drawL = new GraphicsLayer({ title: 'Desenho' });
+        lotesLayerRef.current = lotsL;
+        drawLayerRef.current = drawL;
 
-        // Camada base (OSM - Público, não requer Key para visualização básica)
         const map = new ArcGISMap({
-            basemap: 'osm',
-            layers: [lotesLayer, drawLayer],
+            basemap: 'satellite',
+            layers: [lotsL, drawL],
         });
 
         const view = new MapView({
             container: mapDivRef.current,
             map,
-            center: [-47.93, -15.78], // Brasília (default)
+            center: [-47.93, -15.78],
             zoom: 13,
-            ui: { components: ['zoom', 'compass'] },
+            ui: { components: ['zoom'] },
         });
 
         view.when(
-            () => { viewRef.current = view; },
-            (err: any) => { console.error('Erro ao carregar o View do ArcGIS:', err); }
+            () => {
+                viewRef.current = view;
+                setMapLoaded(true);
+                console.log('[DEBUG] ArcGIS View pronto.');
+            },
+            (err: any) => console.error('[CRITICAL] Erro ArcGIS:', err)
         );
 
-        // Widget de troca de basemap
-        // const bmToggle = new BasemapToggle({ view, nextBasemap: 'satellite' });
-        // view.ui.add(bmToggle, 'bottom-right');
-
-        // Escala
-        // const scaleBar = new ScaleBar({ view, unit: 'metric', style: 'ruler' });
-        // view.ui.add(scaleBar, 'bottom-left');
 
         // Rastrear coordenadas do cursor
         view.on('pointer-move', (evt) => {
@@ -144,13 +159,14 @@ export default function MapContainer({
         });
 
         return () => {
-            view.destroy();
-            viewRef.current = null;
+            if (viewRef.current) {
+                viewRef.current.destroy();
+                viewRef.current = null;
+                setMapLoaded(false);
+            }
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // Atualizar lotes no mapa
     useEffect(() => {
         const layer = lotesLayerRef.current;
         const view = viewRef.current;
@@ -159,7 +175,14 @@ export default function MapContainer({
         layer.removeAll();
 
         lotes.forEach((lote) => {
-            const rings = wktToRings(lote.wkt || '');
+            let rings: number[][][] | null = null;
+
+            if (lote.geojson) {
+                rings = geoJSONToRings(lote.geojson);
+            } else if (lote.wkt) {
+                rings = wktToRings(lote.wkt);
+            }
+
             if (!rings) return;
 
             const polygon = new Polygon({
@@ -193,22 +216,12 @@ export default function MapContainer({
                 layer.add(labelGraphic);
             }
         });
-
-        // Zoom para mostrar todos os lotes
-        if (lotes.length > 0) {
-            view.when(() => {
-                const extent = layer.fullExtent;
-                if (extent && extent.width > 0) {
-                    view.goTo(extent.expand(1.3));
-                }
-            });
-        }
-    }, [lotes]);
+    }, [lotes, mapLoaded, drawingEnabled]);
 
     // Ativar/desativar Sketch
     const handleGeomChange = useCallback(
-        (wkt: string) => {
-            onGeometryChange?.(wkt);
+        (geojson: Record<string, any>) => {
+            onGeometryChange?.(geojson);
         },
         [onGeometryChange]
     );
@@ -216,23 +229,66 @@ export default function MapContainer({
     useEffect(() => {
         const view = viewRef.current;
         const drawLayer = drawLayerRef.current;
+
+        console.log('[DEBUG] Effect Drawing:', {
+            drawingEnabled,
+            hasView: !!view,
+            hasLayer: !!drawLayer
+        });
+
         if (!view || !drawLayer) return;
 
         if (drawingEnabled) {
+            console.warn('[DEBUG] Ativando Sketch no Mapa');
             view.when(() => {
-                // Cria o Sketch apenas quando a view estiver pronta
+                // Evitar race: se já desativamos desenho, não adicionar widgets
+                if (!drawingEnabledRef.current) return;
+
+                // Layer List (Gerenciador de Camadas)
+                const layerList = new LayerList({
+                    view: view,
+                    listItemCreatedFunction: (event) => {
+                        const item = event.item;
+                        if (item.layer && item.layer.type !== "group") {
+                            item.panel = {
+                                content: "legend",
+                                open: false
+                            } as any;
+                        }
+                    }
+                });
+
+                const layerListExpand = new Expand({
+                    view: view,
+                    content: layerList,
+                    group: "top-left",
+                    icon: "layers",
+                    expandTooltip: "Camadas",
+                    expanded: false
+                });
+
+                view.ui.add(layerListExpand, "top-left");
+                layerListExpandRef.current = layerListExpand;
+
+                // Cria o Sketch quando a view estiver pronta
+                console.log('[DEBUG] Instanciando Sketch widget...');
                 const sketch = new Sketch({
                     view,
                     layer: drawLayer,
                     creationMode: 'continuous',
-                    availableCreateTools: ['polygon'],
+                    availableCreateTools: ['polygon', 'rectangle', 'circle'],
                     defaultCreateOptions: { mode: 'click' },
                     visibleElements: {
                         duplicateButton: false,
-                        settingsMenu: false,
+                        settingsMenu: true,
+                        selectionTools: {
+                            "lasso-selection": true,
+                            "rectangle-selection": true,
+                        },
                     },
                 });
 
+                console.warn('[DEBUG] Adicionando Sketch no UI top-right');
                 view.ui.add(sketch, 'top-right');
                 sketchRef.current = sketch;
 
@@ -242,8 +298,8 @@ export default function MapContainer({
                             event.graphic.geometry
                         ) as __esri.Polygon;
                         if (geo.rings && geo.rings.length > 0) {
-                            const wkt = ringsToWkt(geo.rings[0]);
-                            handleGeomChange(wkt);
+                            const geojson = ringsToGeoJSON(geo.rings[0]);
+                            handleGeomChange(geojson);
                         }
                     }
                 });
@@ -254,8 +310,8 @@ export default function MapContainer({
                             event.graphics[0].geometry
                         ) as __esri.Polygon;
                         if (geo.rings && geo.rings.length > 0) {
-                            const wkt = ringsToWkt(geo.rings[0]);
-                            handleGeomChange(wkt);
+                            const geojson = ringsToGeoJSON(geo.rings[0]);
+                            handleGeomChange(geojson);
                         }
                     }
                 });
@@ -263,7 +319,12 @@ export default function MapContainer({
                 console.error('Erro no Sketch:', err);
             });
         } else {
-            // Remove Sketch
+            // Remove LayerList e Sketch ao sair do modo desenho
+            if (layerListExpandRef.current) {
+                view.ui.remove(layerListExpandRef.current);
+                layerListExpandRef.current.destroy();
+                layerListExpandRef.current = null;
+            }
             if (sketchRef.current) {
                 view.ui.remove(sketchRef.current);
                 sketchRef.current.destroy();
@@ -272,13 +333,18 @@ export default function MapContainer({
         }
 
         return () => {
-            if (sketchRef.current) {
+            if (layerListExpandRef.current && view?.ui) {
+                view.ui.remove(layerListExpandRef.current);
+                layerListExpandRef.current.destroy();
+                layerListExpandRef.current = null;
+            }
+            if (sketchRef.current && view?.ui) {
                 view.ui.remove(sketchRef.current);
                 sketchRef.current.destroy();
                 sketchRef.current = null;
             }
         };
-    }, [drawingEnabled, handleGeomChange]);
+    }, [drawingEnabled, handleGeomChange, mapLoaded]);
 
     return (
         <div className="map-container">

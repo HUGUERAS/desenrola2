@@ -43,6 +43,7 @@ export interface Lote {
     nome_cliente: string;
     email_cliente?: string;
     geom?: string;
+    geojson?: Record<string, any>;
     status?: string;
 }
 
@@ -63,7 +64,8 @@ interface AppContextValue extends AppState {
     setSidebarOpen: (open: boolean) => void;
     setCursorCoords: (coords: { lat: number; lon: number } | null) => void;
     setMapGeometries: (geoms: LoteGeometry[]) => void;
-    handleGeometryChange: (wkt: string) => void;
+    handleMapDrawingChange: (geojson: Record<string, any>) => void;
+    handleSaveDrawing: (geojson: Record<string, any>) => Promise<{ ok: boolean }>;
     logout: () => void;
 }
 
@@ -110,6 +112,16 @@ export default function AppShell() {
                             const lotesRes = await apiClient.getMyLotes();
                             if (lotesRes.data && lotesRes.data.length > 0) {
                                 lote = lotesRes.data[0] as unknown as Lote;
+                                // Converter Lote para LoteGeometry
+                                const geometries: LoteGeometry[] = lotesRes.data.map((l: any) => ({
+                                    id: l.id,
+                                    wkt: l.geom,
+                                    geojson: l.geojson,
+                                    label: l.nome_cliente,
+                                    type: l.status === 'APROVADO' ? 'oficial' : 'rascunho'
+                                }));
+                                setState(prev => ({ ...prev, mapGeometries: geometries }));
+
                                 // Tentar achar o projeto dele
                                 const projsRes = await apiClient.getProjects();
                                 projeto = projsRes.data?.find(p => p.id === lote?.projeto_id) as unknown as Projeto || null;
@@ -139,23 +151,74 @@ export default function AppShell() {
         init();
     }, []);
 
-    const handleGeometryChange = useCallback(async (wkt: string) => {
-        if (state.loteAtual) {
-            apiClient.updateLoteGeometria(state.loteAtual.id, wkt).catch(console.error);
-        } else if (state.role === 'proprietario') {
-            // Auto-criar lote para cliente que começou a desenhar
-            console.log('Iniciando auto-criação de lote...');
-            const res = await apiClient.autoCreateLote(wkt);
-            if (res.data) {
-                console.log('Lote criado com sucesso!');
-                const novoLote = res.data as unknown as Lote;
-                setState(prev => ({ ...prev, loteAtual: novoLote }));
-            } else if (res.error) {
-                console.error('Falha na auto-criação:', res.error);
-                alert('Erro ao salvar sua área: ' + res.error);
+    // 1. Atualiza apenas o mapa (local)
+    const handleMapDrawingChange = useCallback((geojson: Record<string, any>) => {
+        console.log('[DEBUG] Desenho no mapa alterado:', geojson);
+
+        // Atualiza a geometria temporária (id: 0) ou a do lote atual no estado local
+        const targetId = state.loteAtual?.id ?? 0;
+
+        setState(prev => {
+            const exists = prev.mapGeometries.find(g => g.id === targetId);
+            const newGeom: LoteGeometry = {
+                id: targetId,
+                geojson: geojson,
+                type: targetId === 0 ? 'rascunho' : 'ativo',
+                label: targetId === 0 ? 'Nova Área' : prev.loteAtual?.nome_cliente
+            };
+
+            if (exists) {
+                return {
+                    ...prev,
+                    mapGeometries: prev.mapGeometries.map(g => g.id === targetId ? newGeom : g)
+                };
+            } else {
+                return {
+                    ...prev,
+                    mapGeometries: [...prev.mapGeometries, newGeom]
+                };
             }
+        });
+
+        // Se já for um lote existente, podemos salvar o ajuste automaticamente em background
+        if (state.loteAtual) {
+            apiClient.updateLoteGeometria(state.loteAtual.id, geojson).catch(console.error);
         }
-    }, [state.loteAtual, state.role]);
+    }, [state.loteAtual]);
+
+    // 2. Salva permanentemente no banco (Manual via botão)
+    const handleSaveDrawing = useCallback(async (geojson: Record<string, any>) => {
+        if (!state.role) return { ok: false };
+
+        console.log('[DEBUG] Solicitando salvamento permanente...');
+        const res = await apiClient.autoCreateLote(geojson);
+
+        if (res.data) {
+            const novoLote = res.data as unknown as Lote;
+            const novaGeom: LoteGeometry = {
+                id: novoLote.id,
+                geojson: novoLote.geojson || geojson,
+                label: novoLote.nome_cliente,
+                type: 'oficial'
+            };
+
+            setState(prev => ({
+                ...prev,
+                loteAtual: novoLote,
+                mapGeometries: prev.mapGeometries
+                    .filter(g => g.id !== 0) // Remove o temporário
+                    .concat(novaGeom)
+            }));
+            // Avisa o App Shell sobre a nova geometria
+            handleMapDrawingChange(geojson);
+            return { ok: true };
+        } else {
+            console.error('Erro ao salvar:', res.error);
+            throw new Error(res.error || 'Falha ao salvar');
+        }
+    }, [state.role, handleMapDrawingChange]);
+
+    const handleGeometryChange = handleMapDrawingChange; // Para compatibilidade temporária se necessário
 
     const contextValue: AppContextValue = {
         ...state,
@@ -166,7 +229,8 @@ export default function AppShell() {
         setSidebarOpen: (open) => setState((prev) => ({ ...prev, sidebarOpen: open })),
         setCursorCoords: (coords) => setState((prev) => ({ ...prev, mapCursor: coords })),
         setMapGeometries: (geoms) => setState((prev) => ({ ...prev, mapGeometries: geoms })),
-        handleGeometryChange,
+        handleMapDrawingChange,
+        handleSaveDrawing,
         logout: async () => {
             await supabase.auth.signOut();
             apiClient.logout();
@@ -193,13 +257,19 @@ export default function AppShell() {
                         <MapContainer
                             lotes={state.mapGeometries}
                             drawingEnabled={state.panel === 'desenhar'}
-                            onGeometryChange={handleGeometryChange}
+                            onGeometryChange={handleMapDrawingChange}
                             onLoteClick={(id) => {
                                 const lote = state.mapGeometries.find((l) => l.id === id);
                                 if (lote) {
                                     setState((prev) => ({
                                         ...prev,
-                                        loteAtual: { id: lote.id, projeto_id: 0, nome_cliente: lote.label || '', geom: lote.wkt },
+                                        loteAtual: {
+                                            id: lote.id,
+                                            projeto_id: 0,
+                                            nome_cliente: lote.label || '',
+                                            geom: lote.wkt,
+                                            geojson: lote.geojson
+                                        },
                                     }));
                                 }
                             }}

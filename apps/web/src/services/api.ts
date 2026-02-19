@@ -491,6 +491,31 @@ class ApiClient {
     async deletePagamento(id: number) {
         return this.request(`/api/pagamentos/${id}`, { method: 'DELETE' });
     }
+
+    // ==================== DOCUMENTOS ====================
+
+    async getDocumentos(loteId: number) {
+        return this.request<Array<{
+            id: number;
+            tipo: string;
+            formato: string;
+            arquivo_url: string;
+            created_at: string;
+        }>>(`/api/documents/${loteId}`);
+    }
+
+    async gerarDocumento(loteId: number, tipo: string = 'memorial') {
+        return this.request<{
+            id: number;
+            tipo: string;
+            formato: string;
+            arquivo_url: string;
+            created_at: string;
+        }>(`/api/documents/gerar/${loteId}`, {
+            method: 'POST',
+            body: JSON.stringify({ lote_id: loteId, tipo }),
+        });
+    }
 }
 
 export const apiClient = new ApiClient(API_URL);

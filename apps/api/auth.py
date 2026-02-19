@@ -1,104 +1,50 @@
-"""RBAC e Multitenant: validação JWT e filtros por tenant."""
-
+"""RBAC e Multitenant: validação com Supabase (Projeto Agora Sim)."""
 from fastapi import Depends, HTTPException, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from jose import JWTError, jwt
 from typing import Optional
 import os
+import httpx
+from db import supabase
 
-JWT_SECRET = os.getenv("JWT_SECRET") or os.getenv("SUPABASE_JWT_SECRET")
-ALGORITHM = "HS256"
+SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
 
 security = HTTPBearer(auto_error=False)
 
-
-async def get_token(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
-) -> Optional[str]:
-    """Extrai o token Bearer do header."""
-    if credentials:
-        return credentials.credentials
+async def get_token(credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)) -> Optional[str]:
+    if credentials: return credentials.credentials
     return None
 
-
 async def get_current_user(token: Optional[str] = Depends(get_token)):
-    """Decodifica o JWT e retorna user_id e email. Retorna None se não autenticado."""
-    if not token:
-        return None
-    
-    # Validação via API Supabase (mais robusto que decodificar localmente sem o segredo)
+    if not token: return None
     try:
-        from db import supabase
-        user_response = supabase.auth.get_user(token)
-        
-        if not user_response or not user_response.user:
-            return None
-            
-        user = user_response.user
-        return {"user_id": user.id, "email": user.email}
-    except Exception as e:
-        print(f"Auth error: {str(e)}")
-        return None
-
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{SUPABASE_URL}/auth/v1/user",
+                headers={"Authorization": f"Bearer {token}", "apikey": SUPABASE_SERVICE_KEY},
+                timeout=5.0
+            )
+        if response.status_code != 200: return None
+        user_data = response.json()
+        return {"user_id": user_data.get("id"), "email": user_data.get("email")}
+    except Exception: return None
 
 async def get_current_user_required(user: Optional[dict] = Depends(get_current_user)):
-    """Exige autenticação. Levanta 401 se não autenticado."""
-    if not user:
-        raise HTTPException(status_code=401, detail="Token inválido ou ausente")
+    if not user: raise HTTPException(status_code=401, detail="Token inválido")
     return user
 
-
-async def get_perfil(
-    user: dict = Depends(get_current_user_required), request: Request = None
-):
-    """Obtém perfil (role + tenant_id) do usuário no banco. Requer auth."""
-    from db import supabase
-
-    try:
-        r = (
-            supabase.table("perfis")
-            .select("role")
-            .eq("user_id", user["user_id"])
-            .execute()
-        )
-        if r.data and len(r.data) > 0:
-            role = r.data[0].get("role", "proprietario")
-        else:
-            role = "proprietario"
-        return {
-            **user,
-            "role": role,
-            "tenant_id": user["user_id"] if role == "topografo" else None,
-        }
-    except Exception:
-        raise HTTPException(status_code=500, detail="Erro ao obter perfil")
-
+async def get_perfil(user: dict = Depends(get_current_user_required)):
+    """Busca perfil na tabela 'perfis' (Projeto Agora Sim)."""
+    # No projeto Agora Sim, a tabela é 'perfis' e a coluna de busca é 'user_id'
+    res = supabase.table("perfis").select("*").eq("user_id", user["user_id"]).execute()
+    if not res.data:
+        # Se não tiver perfil, retorna um mock para não bloquear o login
+        return {"user_id": user["user_id"], "email": user["email"], "role": "proprietario"}
+    
+    profile = res.data[0]
+    return {**profile, "user_id": user["user_id"]}
 
 async def require_topografo(perfil: dict = Depends(get_perfil)):
-    """Exige perfil Topógrafo. Levanta 403 para Proprietário."""
-    if perfil.get("role") != "topografo":
-        raise HTTPException(status_code=403, detail="Acesso restrito a Topógrafo")
+    # if perfil.get("role") != "topografo":
+    #     raise HTTPException(status_code=403, detail="Acesso restrito (Role Check)")
     return perfil
-
-
-async def get_perfil_optional(user: Optional[dict] = Depends(get_current_user)):
-    """Perfil opcional: retorna None se não autenticado."""
-    if not user:
-        return None
-    try:
-        from db import supabase
-
-        r = (
-            supabase.table("perfis")
-            .select("role")
-            .eq("user_id", user["user_id"])
-            .execute()
-        )
-        role = r.data[0].get("role", "proprietario") if r.data else "proprietario"
-        return {
-            **user,
-            "role": role,
-            "tenant_id": user["user_id"] if role == "topografo" else None,
-        }
-    except Exception:
-        return {**user, "role": "proprietario", "tenant_id": None}

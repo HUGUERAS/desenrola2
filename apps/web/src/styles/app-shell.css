@@ -27,9 +27,12 @@
 /* ── Shell Layout ── */
 
 .app-shell {
+    position: fixed;
+    inset: 0;
     display: flex;
     flex-direction: column;
     height: 100vh;
+    width: 100vw;
     overflow: hidden;
     background: var(--bg-primary);
 }
@@ -37,7 +40,16 @@
 .app-body {
     display: flex;
     flex: 1;
+    height: 0;
+    /* Base flex para scroll interno funcionar */
     overflow: hidden;
+}
+
+.app-map-area {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    height: 100%;
 }
 
 /* ── Header ── */
@@ -145,11 +157,13 @@
 
 .app-sidebar {
     width: var(--sidebar-w);
+    height: 100%;
     display: flex;
     flex-direction: column;
     background: var(--bg-surface);
     border-right: 1px solid var(--border);
-    overflow-y: auto;
+    overflow: hidden;
+    /* IMPORTANTE: Sidebar não scrolla, quem scrolla são as partes internas */
 }
 
 .app-sidebar-nav {
@@ -157,6 +171,10 @@
     display: flex;
     flex-direction: column;
     gap: 2px;
+    flex-shrink: 0;
+    overflow-y: auto;
+    max-height: 45%;
+    border-bottom: 1px solid var(--border);
 }
 
 .app-sidebar-section {
@@ -198,12 +216,14 @@
 .app-sidebar-panel {
     flex: 1;
     padding: 12px;
-    border-top: 1px solid var(--border);
     overflow-y: auto;
+    background: #f8fafc;
 }
 
 .app-sidebar-context {
-    padding: 8px 12px;
+    flex-shrink: 0;
+    padding: 12px;
+    background: var(--bg-surface);
     border-top: 1px solid var(--border);
     display: flex;
     flex-direction: column;

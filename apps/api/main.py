@@ -15,6 +15,7 @@ from models.schemas import PerfilSetInput
 from routes.projetos import router as projetos_router
 from routes.lotes import router as lotes_router
 from routes.financeiro import router as financeiro_router
+from routes.documents import router as documents_router
 
 app = FastAPI(
     title="Desenrola API",
@@ -35,6 +36,7 @@ app.add_middleware(
 app.include_router(projetos_router)
 app.include_router(lotes_router)
 app.include_router(financeiro_router)
+app.include_router(documents_router)
 
 
 # ── Health ──
