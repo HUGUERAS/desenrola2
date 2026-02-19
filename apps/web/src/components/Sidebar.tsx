@@ -40,9 +40,11 @@ interface MenuItem {
 const TOPOGRAFO_MENU: MenuItem[] = [
     { id: 'projetos', label: 'Projetos', icon: <FolderOpen size={18} /> },
     { id: 'lotes', label: 'Lotes', icon: <Layers size={18} /> },
-    { id: 'validar', label: 'Validar Desenho', icon: <CheckCircle size={18} />, section: 'FERRAMENTAS' },
+    { id: 'desenhar', label: 'Desenhar', icon: <PenTool size={18} />, section: 'FERRAMENTAS' },
+    { id: 'validar', label: 'Validar Desenho', icon: <CheckCircle size={18} /> },
     { id: 'vizinhos', label: 'Identificar Vizinhos', icon: <Search size={18} /> },
     { id: 'pecas', label: 'Gerar Peças', icon: <FileText size={18} /> },
+    { id: 'documentos', label: 'Documentos', icon: <Upload size={18} /> },
     { id: 'financeiro', label: 'Financeiro', icon: <DollarSign size={18} />, section: 'GESTÃO' },
 ];
 

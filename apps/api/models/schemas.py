@@ -5,7 +5,7 @@ Pydantic Models — Desenrola API
 ✅ SEMPRE use type hints
 """
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from enum import Enum
 
 
@@ -69,11 +69,11 @@ class LoteCreate(BaseModel):
     email_cliente: Optional[str] = None
     telefone_cliente: Optional[str] = None
     cpf_cnpj_cliente: Optional[str] = None
-    geom_wkt: Optional[str] = None
+    geojson: Optional[Dict[str, Any]] = None
 
 
 class GeometriaInput(BaseModel):
-    geom_wkt: str
+    geojson: Dict[str, Any]
 
 
 class StatusLoteInput(BaseModel):
@@ -103,7 +103,19 @@ class VizinhoInput(BaseModel):
 # ── Validação Topologia ──
 
 class ValidarTopologiaInput(BaseModel):
-    geom_wkt: Optional[str] = None
+    geojson: Optional[Dict[str, Any]] = None
+
+
+class ConfrontacaoSalvar(BaseModel):
+    """Modelo para salvar confrontação após revisão do topógrafo."""
+    lote_id: Optional[int] = None
+    direcao: str  # norte, sul, leste, oeste
+    tipo: str = "LOTE"  # LOTE, PESSOA, RUA, RIO, OUTRO
+    vizinho_lote_id: Optional[int] = None
+    nome: Optional[str] = None
+    cpf: Optional[str] = None
+    matricula: Optional[str] = None
+    descricao: Optional[str] = None
 
 
 # ── Perfil ──

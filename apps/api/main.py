@@ -2,13 +2,13 @@
 Desenrola API — FastAPI Application
 ✅ Porta: 8010
 ✅ RBAC: auth.py (get_perfil, require_topografo)
-✅ Geometria: WKT SRID=4674 (SIRGAS 2000)
+✅ Geometria: GeoJSON ↔ WKT SRID=4674 (SIRGAS 2000)
 ✅ Multitenant: tenant_id
 """
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from config import settings
-from auth import get_perfil, get_perfil_optional
+from auth import get_perfil
 from db import supabase
 from models.schemas import PerfilSetInput
 
@@ -16,6 +16,7 @@ from routes.projetos import router as projetos_router
 from routes.lotes import router as lotes_router
 from routes.financeiro import router as financeiro_router
 from routes.documents import router as documents_router
+from routes.topology import router as topology_router
 
 app = FastAPI(
     title="Desenrola API",
@@ -37,6 +38,7 @@ app.include_router(projetos_router)
 app.include_router(lotes_router)
 app.include_router(financeiro_router)
 app.include_router(documents_router)
+app.include_router(topology_router)
 
 
 # ── Health ──
@@ -62,9 +64,10 @@ async def set_perfil_role(body: PerfilSetInput, perfil: dict = Depends(get_perfi
         if role not in ("topografo", "proprietario"):
             raise HTTPException(status_code=400, detail="Role inválida")
 
-        # Upsert na tabela perfis
-        data = {"user_id": perfil["user_id"], "role": role, "email": perfil.get("email")}
-        response = supabase.table("perfis").upsert(data, on_conflict="user_id").execute()
+        # Mapear role conforme ontem
+        primary_role = "GESTOR" if role == "topografo" else "CLIENTE"
+        data = {"id": perfil["user_id"], "primary_role": primary_role}
+        response = supabase.table("profiles").upsert(data, on_conflict="id").execute()
         return {"ok": True, "role": role}
     except HTTPException:
         raise
@@ -79,7 +82,7 @@ async def acesso_lote_token(token: str):
     """Acesso público por magic link."""
     try:
         response = (
-            supabase.table("lotes").select("*").eq("token_acesso", token).execute()
+            supabase.table("properties").select("*").eq("token_acesso", token).execute()
         )
         if not response.data:
             raise HTTPException(status_code=404, detail="Link inválido ou expirado")

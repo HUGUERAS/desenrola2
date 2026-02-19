@@ -240,9 +240,9 @@ class ApiClient {
         return this.request<unknown[]>('/api/lotes');
     }
 
-    async autoCreateLote(wkt: string) {
+    async autoCreateLote(geojson: Record<string, any>) {
         // 1. Criar projeto padrão se necessário
-        console.log('Auto-criando lote para WKT:', wkt);
+        console.log('Auto-criando lote...');
         const projectsRes = await this.getProjects();
         let project = projectsRes.data?.find(p => p.nome === 'Meu Primeiro Projeto');
 
@@ -275,7 +275,7 @@ class ApiClient {
             projeto_id: (project as any).id,
             nome_cliente: nome,
             email_cliente: user.email,
-            geom_wkt: wkt
+            geojson: geojson
         });
     }
 
@@ -285,7 +285,7 @@ class ApiClient {
         email_cliente?: string;
         telefone_cliente?: string;
         cpf_cnpj_cliente?: string;
-        geom_wkt?: string;
+        geojson?: Record<string, any>;
     }) {
         return this.request('/api/lotes', {
             method: 'POST',
@@ -293,10 +293,10 @@ class ApiClient {
         });
     }
 
-    async updateLoteGeometria(loteId: number, geom_wkt: string) {
+    async updateLoteGeometria(loteId: number, geojson: Record<string, any>) {
         return this.request(`/api/lotes/${loteId}/geometria`, {
             method: 'PUT',
-            body: JSON.stringify({ geom_wkt }),
+            body: JSON.stringify({ geojson }),
         });
     }
 
@@ -337,10 +337,10 @@ class ApiClient {
         return this.request(`/api/lotes/${loteId}/confrontacoes`);
     }
 
-    async validarTopologia(loteId: number, geom_wkt?: string) {
+    async validarTopologia(loteId: number, geojson?: Record<string, any>) {
         return this.request(`/api/lotes/${loteId}/validar-topologia`, {
             method: 'POST',
-            body: JSON.stringify(geom_wkt ? { geom_wkt } : {}),
+            body: JSON.stringify(geojson ? { geojson } : {}),
         });
     }
 
