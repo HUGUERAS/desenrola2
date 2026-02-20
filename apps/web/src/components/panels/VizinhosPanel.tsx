@@ -1,14 +1,15 @@
 /**
  * VizinhosPanel — Identificar vizinhos automáticos + edição manual + DirectionCompass
- * Integração Carretel: rosa dos ventos, adicionar vizinho por direção, editar dados
+ * Premium UI with Carretel integration
  */
 import { useState } from 'react';
 import { useApp } from '../../pages/AppShell';
 import apiClient from '../../services/api';
-import { Search, Save, Loader2, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Pencil, Plus, X } from 'lucide-react';
+import { Search, Save, Loader2, Pencil, Plus, X, MapPin, Users, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import DirectionCompass from '../DirectionCompass';
 import { formatCPF } from '../../lib/format-utils';
+import { Button, Card, Input, Badge, CardHeader, CardBody } from '../ui/Components';
 
 interface Vizinho {
     lote_id: string;
@@ -27,12 +28,6 @@ interface ResultadoVizinhos {
 }
 
 const DIRECOES = ['norte', 'sul', 'leste', 'oeste'] as const;
-const DIRECAO_ICON: Record<string, React.ReactNode> = {
-    norte: <ArrowUp size={14} />,
-    sul: <ArrowDown size={14} />,
-    leste: <ArrowRight size={14} />,
-    oeste: <ArrowLeft size={14} />,
-};
 
 function getVizinhosPorDirecao(vizinhos: Vizinho[]): Record<string, Vizinho[]> {
     const porDir: Record<string, Vizinho[]> = { norte: [], sul: [], leste: [], oeste: [] };
@@ -70,10 +65,10 @@ export default function VizinhosPanel() {
             }
             if (res.error) setError(res.error);
             else if ((res.data as ResultadoVizinhos)?.vizinhos?.length) {
-                toast.success(`${(res.data as ResultadoVizinhos).vizinhos.length} vizinho(s) identificado(s)`);
+                toast.success(`${(res.data as ResultadoVizinhos).vizinhos.length} vizinhos detectados`);
             }
         } catch {
-            setError('Erro ao identificar vizinhos');
+            setError('Falha ao processar análise espacial');
             toast.error('Erro ao identificar vizinhos');
         } finally {
             setLoading(false);
@@ -103,10 +98,10 @@ export default function VizinhosPanel() {
                 toast.error(res.error);
             } else {
                 setSaved(true);
-                toast.success('Confrontações salvas com sucesso');
+                toast.success('Documentação de vizinhos salva');
             }
         } catch {
-            setError('Erro ao salvar');
+            setError('Erro ao persistir dados');
             toast.error('Erro ao salvar');
         } finally {
             setSaving(false);
@@ -128,7 +123,7 @@ export default function VizinhosPanel() {
 
     const addManualVizinho = (dir: string) => {
         if (!manualForm.nome.trim()) {
-            toast.error('Informe o nome do proprietário');
+            toast.error('Nome obrigatório');
             return;
         }
         const novo: Vizinho = {
@@ -140,7 +135,7 @@ export default function VizinhosPanel() {
         setVizinhos((prev) => [...prev.filter((v) => v.direcao !== dir), novo]);
         setEditingDir(null);
         setManualForm({ nome: '', cpf: '' });
-        toast.success('Vizinho adicionado manualmente');
+        toast.success('Confrontação manual adicionada');
     };
 
     const removeVizinho = (dir: string) => {
@@ -149,14 +144,14 @@ export default function VizinhosPanel() {
     };
 
     const vizinhosPorDir = getVizinhosPorDirecao(vizinhos);
-    const highlightedDirections = DIRECOES.filter((d) => (vizinhosPorDir[d]?.length ?? 0) > 0);
+    const highlightedDirections = DIRECOES.filter((d) => (vizinhosPorDir[d]?.length ?? 0) > 0) as any[];
 
     if (!loteAtual) {
         return (
             <div className="panel">
-                <div className="panel-empty">
-                    <Search size={24} />
-                    <p>Selecione um lote para identificar vizinhos</p>
+                <div className="panel-empty py-20">
+                    <MapPin size={48} className="text-titanium-200 mb-4" />
+                    <p className="text-titanium-500">Selecione um lote no mapa<br />para identificar confrontantes</p>
                 </div>
             </div>
         );
@@ -164,177 +159,158 @@ export default function VizinhosPanel() {
 
     return (
         <div className="panel">
-            <div className="panel-header">
-                <h3>🔍 Vizinhos</h3>
+            <div className="panel-header mb-4">
+                <div className="flex flex-col">
+                    <h3 className="flex items-center gap-2"><Users size={18} className="text-primary" /> Vizinhos</h3>
+                    <span className="text-[10px] text-titanium-400 font-bold uppercase tracking-widest mt-0.5">Lote #{loteAtual.id}</span>
+                </div>
             </div>
 
-            <div className="panel-info">
-                <span>Lote #{loteAtual.id} — {loteAtual.nome_cliente}</span>
-            </div>
-
-            <button
-                className="panel-btn panel-btn--primary panel-btn--full"
+            <Button
+                variant="primary"
+                className="w-full mb-6 py-6 shadow-lg shadow-primary/20"
                 onClick={identificar}
                 disabled={loading}
+                icon={loading ? undefined : 'search'}
             >
-                {loading ? (
-                    <>
-                        <Loader2 size={14} className="spin" /> Buscando...
-                    </>
-                ) : (
-                    <>
-                        <Search size={14} /> Identificar Vizinhos
-                    </>
-                )}
-            </button>
+                {loading ? <><Loader2 size={16} className="spin mr-2" /> Analisando Geometrias...</> : 'Buscac Vizinhos Automáticos'}
+            </Button>
 
-            {error && <div className="panel-error">{error}</div>}
+            {error && <div className="panel-error mb-4">{error}</div>}
 
             {vizinhos.length > 0 && (
-                <>
-                    <div className="panel-result-header" style={{ marginTop: 12 }}>
-                        <span>{vizinhos.length} vizinho(s)</span>
-                        {resultado?.metadados?.tempo_execucao_ms && (
-                            <span className="panel-meta-time">{resultado.metadados.tempo_execucao_ms}ms</span>
-                        )}
-                    </div>
-
-                    <div className="panel-section" style={{ display: 'flex', justifyContent: 'center', padding: '16px 0' }}>
-                        <DirectionCompass highlightedDirections={highlightedDirections} size="md" />
-                    </div>
-
-                    {DIRECOES.map((dir) => {
-                        const list = vizinhosPorDir[dir] || [];
-                        const isEditing = editingDir === dir;
-
-                        return (
-                            <div key={dir} className="panel-section">
-                                <h4 className="panel-dir-label">
-                                    {DIRECAO_ICON[dir]} {dir.charAt(0).toUpperCase() + dir.slice(1)}
-                                </h4>
-
-                                {list.length > 0 && !isEditing ? (
-                                    list.map((v, i) => (
-                                        <div key={i} className="panel-vizinho-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-                                            <div>
-                                                {v.numero > 0 && <span className="panel-vizinho-num">Lote {v.numero} — </span>}
-                                                <span className="panel-vizinho-nome">{v.cliente?.nome || 'Sem nome'}</span>
-                                                {v.cliente?.cpf && (
-                                                    <span style={{ fontSize: '.75rem', opacity: 0.8, marginLeft: 4 }}>
-                                                        {v.cliente.cpf}
-                                                    </span>
-                                                )}
-                                                {v.distancia_metros && (
-                                                    <span className="panel-vizinho-dist"> {v.distancia_metros.toFixed(1)}m</span>
-                                                )}
-                                            </div>
-                                            <div style={{ display: 'flex', gap: 4 }}>
-                                                <button
-                                                    className="panel-btn panel-btn--sm"
-                                                    onClick={() => {
-                                                        setEditingDir(dir);
-                                                        setManualForm({
-                                                            nome: v.cliente?.nome || '',
-                                                            cpf: v.cliente?.cpf || '',
-                                                        });
-                                                    }}
-                                                    title="Editar"
-                                                >
-                                                    <Pencil size={12} />
-                                                </button>
-                                                <button
-                                                    className="panel-btn panel-btn--sm"
-                                                    onClick={() => removeVizinho(dir)}
-                                                    title="Remover"
-                                                >
-                                                    <X size={12} />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))
-                                ) : list.length > 0 && isEditing ? (
-                                    <div className="panel-form" style={{ padding: 8, background: 'var(--surface-2)', borderRadius: 8 }}>
-                                        <label className="panel-label">Nome *</label>
-                                        <input
-                                            className="panel-input"
-                                            placeholder="Nome do proprietário"
-                                            value={manualForm.nome}
-                                            onChange={(e) => setManualForm((p) => ({ ...p, nome: e.target.value }))}
-                                        />
-                                        <label className="panel-label">CPF</label>
-                                        <input
-                                            className="panel-input"
-                                            placeholder="000.000.000-00"
-                                            value={manualForm.cpf}
-                                            onChange={(e) => setManualForm((p) => ({ ...p, cpf: formatCPF(e.target.value) }))}
-                                        />
-                                        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                                            <button className="panel-btn panel-btn--primary" onClick={() => updateVizinhoFromForm(dir)}>
-                                                Salvar
-                                            </button>
-                                            <button className="panel-btn" onClick={() => { setEditingDir(null); setManualForm({ nome: '', cpf: '' }); }}>
-                                                Cancelar
-                                            </button>
-                                        </div>
+                <div className="space-y-6">
+                    {/* Visual Analytics */}
+                    <Card className="bg-titanium-900 overflow-hidden relative border-none">
+                        <div className="absolute top-0 right-0 p-4 opacity-10">
+                            <Zap size={100} className="text-white" />
+                        </div>
+                        <div className="relative z-10 flex flex-col items-center py-8">
+                            <DirectionCompass highlightedDirections={highlightedDirections} size="md" />
+                            <div className="mt-4 flex gap-4">
+                                <div className="text-center">
+                                    <div className="text-2xl font-bold text-white">{vizinhos.length}</div>
+                                    <div className="text-[9px] uppercase text-titanium-400 font-bold">Confrontantes</div>
+                                </div>
+                                {resultado?.metadados?.tempo_execucao_ms && (
+                                    <div className="text-center border-l border-titanium-800 pl-4">
+                                        <div className="text-2xl font-bold text-success-400">{resultado.metadados.tempo_execucao_ms}ms</div>
+                                        <div className="text-[9px] uppercase text-titanium-400 font-bold">Performance</div>
                                     </div>
-                                ) : isEditing ? (
-                                    <div className="panel-form" style={{ padding: 8, background: 'var(--surface-2)', borderRadius: 8 }}>
-                                        <label className="panel-label">Nome *</label>
-                                        <input
-                                            className="panel-input"
-                                            placeholder="Nome do proprietário"
-                                            value={manualForm.nome}
-                                            onChange={(e) => setManualForm((p) => ({ ...p, nome: e.target.value }))}
-                                        />
-                                        <label className="panel-label">CPF</label>
-                                        <input
-                                            className="panel-input"
-                                            placeholder="000.000.000-00"
-                                            value={manualForm.cpf}
-                                            onChange={(e) => setManualForm((p) => ({ ...p, cpf: formatCPF(e.target.value) }))}
-                                        />
-                                        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                                            <button className="panel-btn panel-btn--primary" onClick={() => addManualVizinho(dir)}>
-                                                Adicionar
-                                            </button>
-                                            <button className="panel-btn" onClick={() => { setEditingDir(null); setManualForm({ nome: '', cpf: '' }); }}>
-                                                Cancelar
-                                            </button>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <button
-                                        className="panel-btn panel-btn--sm"
-                                        style={{ borderStyle: 'dashed' }}
-                                        onClick={() => setEditingDir(dir)}
-                                    >
-                                        <Plus size={12} /> Adicionar manualmente
-                                    </button>
                                 )}
                             </div>
-                        );
-                    })}
+                        </div>
+                    </Card>
 
-                    <button
-                        className="panel-btn panel-btn--success panel-btn--full"
+                    {/* Direções Details */}
+                    <div className="space-y-4">
+                        {DIRECOES.map((dir) => {
+                            const list = vizinhosPorDir[dir] || [];
+                            const isEditing = editingDir === dir;
+
+                            return (
+                                <div key={dir}>
+                                    <div className="flex items-center justify-between mb-2 px-1">
+                                        <h4 className="flex items-center gap-2 text-[11px] font-black uppercase text-titanium-500 tracking-tighter">
+                                            <span className={`w-2 h-2 rounded-full ${list.length > 0 ? 'bg-primary' : 'bg-titanium-200'}`}></span>
+                                            {dir}
+                                        </h4>
+                                        {!isEditing && list.length === 0 && (
+                                            <button
+                                                onClick={() => setEditingDir(dir)}
+                                                className="text-[10px] font-bold text-primary hover:underline"
+                                            >
+                                                + Adicionar
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {list.length > 0 && !isEditing ? (
+                                        list.map((v, i) => (
+                                            <Card key={i} className="p-3 border-l-4 border-l-primary group">
+                                                <div className="flex justify-between items-center">
+                                                    <div>
+                                                        <div className="font-bold text-titanium-900 group-hover:text-primary transition-colors">
+                                                            {v.cliente?.nome || 'Proprietário não identificado'}
+                                                        </div>
+                                                        <div className="flex items-center gap-2 text-[10px] text-titanium-500">
+                                                            {v.numero > 0 && <Badge variant="info" size="sm">Lote {v.numero}</Badge>}
+                                                            {v.cliente?.cpf && <span>{v.cliente.cpf}</span>}
+                                                            {v.distancia_metros && <span className="text-titanium-300">· {v.distancia_metros.toFixed(1)}m</span>}
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <button
+                                                            className="p-1.5 hover:bg-titanium-100 rounded text-titanium-600"
+                                                            onClick={() => {
+                                                                setEditingDir(dir);
+                                                                setManualForm({ nome: v.cliente?.nome || '', cpf: v.cliente?.cpf || '' });
+                                                            }}
+                                                        >
+                                                            <Pencil size={14} />
+                                                        </button>
+                                                        <button
+                                                            className="p-1.5 hover:bg-error/10 rounded text-error"
+                                                            onClick={() => removeVizinho(dir)}
+                                                        >
+                                                            <X size={14} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </Card>
+                                        ))
+                                    ) : isEditing ? (
+                                        <Card className="p-4 bg-titanium-50 border-titanium-200">
+                                            <div className="space-y-3">
+                                                <Input
+                                                    label="Nome do Proprietário"
+                                                    placeholder="Nome completo..."
+                                                    value={manualForm.nome}
+                                                    onChange={e => setManualForm({ ...manualForm, nome: e.target.value })}
+                                                />
+                                                <Input
+                                                    label="CPF (opcional)"
+                                                    placeholder="000.000.000-00"
+                                                    value={manualForm.cpf}
+                                                    onChange={e => setManualForm({ ...manualForm, cpf: formatCPF(e.target.value) })}
+                                                />
+                                                <div className="flex gap-2 pt-2">
+                                                    <Button
+                                                        size="sm"
+                                                        variant="primary"
+                                                        className="flex-1"
+                                                        onClick={() => list.length > 0 ? updateVizinhoFromForm(dir) : addManualVizinho(dir)}
+                                                    >
+                                                        {list.length > 0 ? 'Atualizar' : 'Adicionar'}
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="secondary"
+                                                        onClick={() => { setEditingDir(null); setManualForm({ nome: '', cpf: '' }); }}
+                                                    >
+                                                        Cancelar
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </Card>
+                                    ) : null}
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    <Button
+                        variant="primary"
+                        className="w-full mt-4 py-4 font-bold uppercase tracking-widest text-xs"
                         onClick={salvar}
                         disabled={saving || saved}
-                        style={{ marginTop: 8 }}
+                        icon={saved ? undefined : (saving ? undefined : 'save')}
                     >
-                        {saved ? (
-                            '✓ Salvo'
-                        ) : saving ? (
-                            <>
-                                <Loader2 size={14} className="spin" /> Salvando...
-                            </>
-                        ) : (
-                            <>
-                                <Save size={14} /> Salvar Confrontações
-                            </>
-                        )}
-                    </button>
-                </>
+                        {saved ? '✓ Documentação Gerada' : (saving ? 'Salvando...' : 'Finalizar e Salvar')}
+                    </Button>
+                </div>
             )}
         </div>
     );
 }
+

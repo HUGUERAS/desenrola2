@@ -16,9 +16,12 @@ COMMENT ON COLUMN projetos.cidade IS 'Município do projeto';
 COMMENT ON COLUMN projetos.estado IS 'UF';
 COMMENT ON COLUMN projetos.observacoes IS 'Observações gerais';
 
--- 2. USUARIOS (se usar profiles, adicione migração separada)
-ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS crea TEXT;
-ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS empresa TEXT;
+-- 2. PERFIS (usuários)
+ALTER TABLE perfis ADD COLUMN IF NOT EXISTS crea TEXT;
+ALTER TABLE perfis ADD COLUMN IF NOT EXISTS empresa TEXT;
+
+COMMENT ON COLUMN perfis.crea IS 'Número CREA/CFT do topógrafo';
+COMMENT ON COLUMN perfis.empresa IS 'Nome da empresa do topógrafo';
 
 -- 3. CONFRONTACOES
 ALTER TABLE confrontacoes ADD COLUMN IF NOT EXISTS imovel TEXT;

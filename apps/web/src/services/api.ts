@@ -177,15 +177,15 @@ class ApiClient {
     // ==================== PERFIL ====================
 
     async getPerfilMe() {
-        return this.request<{ user_id: string; email?: string; role: string }>(
+        return this.request<{ user_id: string; email?: string; role: string; crea?: string; empresa?: string }>(
             '/api/perfis/me'
         );
     }
 
-    async setPerfilRole(role: 'topografo' | 'proprietario') {
+    async setPerfilRole(role: 'topografo' | 'proprietario', extra?: { crea?: string; empresa?: string }) {
         return this.request('/api/perfis/set-role', {
             method: 'POST',
-            body: JSON.stringify({ role }),
+            body: JSON.stringify({ role, ...extra }),
         });
     }
 
@@ -196,7 +196,15 @@ class ApiClient {
         return validateResponse(ProjectsSchema, response, 'getProjects');
     }
 
-    async createProject(data: { nome: string; descricao?: string; tipo?: string }) {
+    async createProject(data: {
+        nome: string;
+        descricao?: string;
+        tipo?: string;
+        endereco?: string;
+        cidade?: string;
+        estado?: string;
+        observacoes?: string;
+    }) {
         return this.request('/api/projetos', {
             method: 'POST',
             body: JSON.stringify({ ...data, tipo: data.tipo || 'INDIVIDUAL' }),
@@ -205,7 +213,16 @@ class ApiClient {
 
     async updateProject(
         id: number,
-        data: { nome?: string; descricao?: string; tipo?: string; status?: string }
+        data: {
+            nome?: string;
+            descricao?: string;
+            tipo?: string;
+            status?: string;
+            endereco?: string;
+            cidade?: string;
+            estado?: string;
+            observacoes?: string;
+        }
     ) {
         return this.request(`/api/projetos/${id}`, {
             method: 'PUT',
@@ -380,6 +397,9 @@ class ApiClient {
         valor: number;
         status?: string;
         observacoes?: string;
+        data_emissao?: string;
+        data_vencimento?: string;
+        cliente_nome?: string;
     }) {
         return this.request('/api/orcamentos', {
             method: 'POST',
@@ -414,6 +434,7 @@ class ApiClient {
         descricao: string;
         valor: number;
         data?: string;
+        data_vencimento?: string;
         categoria?: string;
         observacoes?: string;
     }) {
@@ -429,8 +450,10 @@ class ApiClient {
             descricao?: string;
             valor?: number;
             data?: string;
+            data_vencimento?: string;
             categoria?: string;
             observacoes?: string;
+            projeto_id?: number;
         }
     ) {
         return this.request(`/api/despesas/${id}`, {
@@ -462,6 +485,7 @@ class ApiClient {
         valor_pago?: number;
         status?: string;
         data_pagamento?: string;
+        data_vencimento?: string;
         metodo_pagamento?: string;
         observacoes?: string;
     }) {

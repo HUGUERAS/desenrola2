@@ -64,10 +64,15 @@ async def set_perfil_role(body: PerfilSetInput, perfil: dict = Depends(get_perfi
         if role not in ("topografo", "proprietario"):
             raise HTTPException(status_code=400, detail="Role inválida")
 
-        # Mapear role conforme ontem
-        primary_role = "GESTOR" if role == "topografo" else "CLIENTE"
-        data = {"id": perfil["user_id"], "primary_role": primary_role}
-        response = supabase.table("profiles").upsert(data, on_conflict="id").execute()
+        # No projeto Desenrola, usamos a role diretamente ou mapeada
+        data = {"user_id": perfil["user_id"], "role": role}
+        
+        # Extra fields for topografo
+        if role == "topografo" and hasattr(body, 'crea'):
+            data["crea"] = getattr(body, 'crea')
+            data["empresa"] = getattr(body, 'empresa', '')
+
+        response = supabase.table("perfis").upsert(data, on_conflict="user_id").execute()
         return {"ok": True, "role": role}
     except HTTPException:
         raise
