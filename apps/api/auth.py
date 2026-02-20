@@ -1,13 +1,16 @@
-"""RBAC e Multitenant: validação com Supabase (Projeto Agora Sim)."""
+"""RBAC e Multitenant: validação com Supabase."""
 from fastapi import Depends, HTTPException, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import Optional
 import os
 import httpx
+from dotenv import load_dotenv
 from db import supabase
 
+load_dotenv()
+
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "") or os.getenv("SUPABASE_KEY", "")
 
 security = HTTPBearer(auto_error=False)
 

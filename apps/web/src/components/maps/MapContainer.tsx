@@ -103,7 +103,7 @@ export default function MapContainer({
 
         console.log('[DEBUG] Montando instância do ArcGIS...');
 
-        esriConfig.assetsPath = '/assets';
+        esriConfig.assetsPath = '/assets/esri';
         intl.setLocale("pt-BR");
 
         const apiKey = import.meta.env.VITE_ESRI_API_KEY;
@@ -115,7 +115,7 @@ export default function MapContainer({
         drawLayerRef.current = drawL;
 
         const map = new ArcGISMap({
-            basemap: 'satellite',
+            basemap: apiKey ? 'satellite' : 'osm',
             layers: [lotsL, drawL],
         });
 
