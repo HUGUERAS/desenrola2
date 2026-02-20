@@ -103,7 +103,7 @@ export function useToolExecution({
 
           const handler = view.on('click', (e) => {
             const geo = webMercatorUtils.webMercatorToGeographic(e.mapPoint) as __esri.Point;
-            const coords: [number, number] = [geo.longitude, geo.latitude];
+            const coords: [number, number] = [geo.longitude as number, geo.latitude as number];
             clickPointsRef.current.push(coords);
 
             renderMeasurementPoint(toolLayer, new Point({ longitude: coords[0], latitude: coords[1] }));
@@ -149,7 +149,7 @@ export function useToolExecution({
 
           const handler = view.on('click', (e) => {
             const geo = webMercatorUtils.webMercatorToGeographic(e.mapPoint) as __esri.Point;
-            const coords: [number, number] = [geo.longitude, geo.latitude];
+            const coords: [number, number] = [geo.longitude as number, geo.latitude as number];
             clickPointsRef.current.push(coords);
 
             renderMeasurementPoint(toolLayer, new Point({ longitude: coords[0], latitude: coords[1] }));
@@ -185,8 +185,8 @@ export function useToolExecution({
             const pt = view.toMap(e);
             if (pt) {
               const geo = webMercatorUtils.webMercatorToGeographic(pt) as __esri.Point;
-              const lon = geo.longitude;
-              const lat = geo.latitude;
+              const lon = geo.longitude as number;
+              const lat = geo.latitude as number;
               const [easting, northing] = geographicToSIRGASUTM(lon, lat);
               onToolResult({
                 type: 'coordenadas',
@@ -241,7 +241,7 @@ export function useToolExecution({
 
           const handler = view.on('click', async (e) => {
             const geo = webMercatorUtils.webMercatorToGeographic(e.mapPoint) as __esri.Point;
-            const coords: [number, number] = [geo.longitude, geo.latitude];
+            const coords: [number, number] = [geo.longitude as number, geo.latitude as number];
             clickPointsRef.current.push(coords);
 
             renderMeasurementPoint(toolLayer, new Point({ longitude: coords[0], latitude: coords[1] }), [255, 0, 0]);
@@ -294,7 +294,7 @@ export function useToolExecution({
             const graphicHit = hitResult.results.find(r => r.type === 'graphic' && r.graphic?.geometry?.type === 'polygon');
             if (graphicHit && graphicHit.type === 'graphic') {
               selectedGraphicsRef.current.push(graphicHit.graphic);
-              renderGeometryResult(toolLayer, graphicHit.graphic.geometry, [33, 150, 243]);
+              renderGeometryResult(toolLayer, graphicHit.graphic.geometry as __esri.Geometry, [33, 150, 243]);
               onToolInfo?.(`${selectedGraphicsRef.current.length} poligono(s) selecionado(s). Clique mais ou pressione Enter para unir.`);
             }
           });

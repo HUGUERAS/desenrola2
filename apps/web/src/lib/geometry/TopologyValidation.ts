@@ -126,7 +126,7 @@ export function detectOverlaps(
 ): TopologyError | null {
   const intersection = geometryEngine.intersect(polygon1, polygon2);
 
-  if (intersection && intersection.type === 'polygon') {
+  if (intersection && !Array.isArray(intersection) && intersection.type === 'polygon') {
     const overlapArea = Math.abs(
       geometryEngine.planarArea(intersection as __esri.Polygon, 'square-meters')
     );

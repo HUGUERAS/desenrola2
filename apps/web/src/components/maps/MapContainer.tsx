@@ -360,7 +360,7 @@ export default function MapContainer({
         if (!view) return;
 
         toolLayers.forEach(config => {
-            const layer = view.map.findLayerById(config.id);
+            const layer = view.map?.findLayerById(config.id);
             if (layer) {
                 layer.visible = config.visible;
                 layer.opacity = config.opacity / 100;

@@ -131,7 +131,10 @@ class ApiClient {
                     if (!response.ok) {
                         if (response.status === 401) this.clearToken();
                         const errorMessage =
-                            payload?.detail || payload?.message || payload?.error || 'Erro na requisição';
+                            (payload as Record<string, unknown>)?.detail as string ||
+                            (payload as Record<string, unknown>)?.message as string ||
+                            (payload as Record<string, unknown>)?.error as string ||
+                            'Erro na requisição';
 
                         if (
                             shouldRetry &&
