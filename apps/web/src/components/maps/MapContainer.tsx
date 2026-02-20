@@ -5,7 +5,7 @@
  * Usa SRID 4674 (SIRGAS 2000) — visualmente idêntico a 4326.
  * O ArcGIS exibe nativamente em Web Mercator; convertemos para geográfico ao exportar GeoJSON.
  */
-import { useEffect, useRef, useCallback, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import MapView from '@arcgis/core/views/MapView';
 import ArcGISMap from '@arcgis/core/Map';
 import GraphicsLayer from '@arcgis/core/layers/GraphicsLayer';
@@ -93,6 +93,8 @@ export default function MapContainer({
     onLoteClickRef.current = onLoteClick;
     const setCursorCoordsRef = useRef(setCursorCoords);
     setCursorCoordsRef.current = setCursorCoords;
+    const onGeometryChangeRef = useRef(onGeometryChange);
+    onGeometryChangeRef.current = onGeometryChange;
 
     const drawingEnabledRef = useRef(drawingEnabled);
     drawingEnabledRef.current = drawingEnabled;
@@ -219,14 +221,6 @@ export default function MapContainer({
         });
     }, [lotes, mapLoaded, drawingEnabled]);
 
-    // Ativar/desativar Sketch
-    const handleGeomChange = useCallback(
-        (geojson: Record<string, any>) => {
-            onGeometryChange?.(geojson);
-        },
-        [onGeometryChange]
-    );
-
     useEffect(() => {
         const view = viewRef.current;
         const drawLayer = drawLayerRef.current;
@@ -244,6 +238,8 @@ export default function MapContainer({
             view.when(() => {
                 // Evitar race: se já desativamos desenho, não adicionar widgets
                 if (!drawingEnabledRef.current) return;
+                // Guard: Sketch já foi criado, não duplicar
+                if (sketchRef.current) return;
 
                 // Layer List (Gerenciador de Camadas)
                 const layerList = new LayerList({
@@ -303,7 +299,7 @@ export default function MapContainer({
                         ) as __esri.Polygon;
                         if (geo.rings && geo.rings.length > 0) {
                             const geojson = ringsToGeoJSON(geo.rings[0]);
-                            handleGeomChange(geojson);
+                            onGeometryChangeRef.current?.(geojson);
                         }
                     }
                 });
@@ -315,7 +311,7 @@ export default function MapContainer({
                         ) as __esri.Polygon;
                         if (geo.rings && geo.rings.length > 0) {
                             const geojson = ringsToGeoJSON(geo.rings[0]);
-                            handleGeomChange(geojson);
+                            onGeometryChangeRef.current?.(geojson);
                         }
                     }
                 });
@@ -348,7 +344,7 @@ export default function MapContainer({
                 sketchRef.current = null;
             }
         };
-    }, [drawingEnabled, handleGeomChange, mapLoaded]);
+    }, [drawingEnabled, mapLoaded]);
 
     // ── CAD Tool Execution ──
     useToolExecution({
