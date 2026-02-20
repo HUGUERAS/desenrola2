@@ -222,101 +222,86 @@ export default function MapContainer({
     }, [lotes, mapLoaded, drawingEnabled]);
 
     useEffect(() => {
+        // Só executa após o mapa estar totalmente pronto
+        if (!mapLoaded) return;
         const view = viewRef.current;
         const drawLayer = drawLayerRef.current;
-
-        console.log('[DEBUG] Effect Drawing:', {
-            drawingEnabled,
-            hasView: !!view,
-            hasLayer: !!drawLayer
-        });
-
         if (!view || !drawLayer) return;
 
         if (drawingEnabled) {
-            console.warn('[DEBUG] Ativando Sketch no Mapa');
-            view.when(() => {
-                // Evitar race: se já desativamos desenho, não adicionar widgets
-                if (!drawingEnabledRef.current) return;
-                // Guard: Sketch já foi criado, não duplicar
-                if (sketchRef.current) return;
+            // Guard: Sketch já existe, não duplicar
+            if (sketchRef.current) return;
 
-                // Layer List (Gerenciador de Camadas)
-                const layerList = new LayerList({
-                    view: view,
-                    listItemCreatedFunction: (event) => {
-                        const item = event.item;
-                        if (item.layer && item.layer.type !== "group") {
-                            item.panel = {
-                                content: "legend",
-                                open: false
-                            } as any;
-                        }
+            // Layer List (Gerenciador de Camadas)
+            const layerList = new LayerList({
+                view: view,
+                listItemCreatedFunction: (event) => {
+                    const item = event.item;
+                    if (item.layer && item.layer.type !== "group") {
+                        item.panel = {
+                            content: "legend",
+                            open: false
+                        } as any;
                     }
-                });
+                }
+            });
 
-                const layerListExpand = new Expand({
-                    view: view,
-                    content: layerList,
-                    group: "top-left",
-                    icon: "layers",
-                    expandTooltip: "Camadas",
-                    expanded: false
-                });
+            const layerListExpand = new Expand({
+                view: view,
+                content: layerList,
+                group: "top-left",
+                icon: "layers",
+                expandTooltip: "Camadas",
+                expanded: false
+            });
 
-                view.ui.add(layerListExpand, "top-left");
-                layerListExpandRef.current = layerListExpand;
+            view.ui.add(layerListExpand, "top-left");
+            layerListExpandRef.current = layerListExpand;
 
-                // Cria o Sketch quando a view estiver pronta
-                console.log('[DEBUG] Instanciando Sketch widget...');
-                const sketch = new Sketch({
-                    view,
-                    layer: drawLayer,
-                    creationMode: 'continuous',
-                    availableCreateTools: ['polygon', 'rectangle', 'circle'],
-                    defaultCreateOptions: { mode: 'click' },
-                    visibleElements: {
-                        duplicateButton: false,
-                        settingsMenu: true,
-                        selectionTools: {
-                            "lasso-selection": true,
-                            "rectangle-selection": true,
-                        },
+            const sketch = new Sketch({
+                view,
+                layer: drawLayer,
+                creationMode: 'continuous',
+                availableCreateTools: ['polygon', 'rectangle', 'circle'],
+                defaultCreateOptions: { mode: 'click' },
+                visibleElements: {
+                    duplicateButton: false,
+                    settingsMenu: true,
+                    selectionTools: {
+                        "lasso-selection": true,
+                        "rectangle-selection": true,
                     },
-                });
+                },
+            });
 
-                console.warn('[DEBUG] Adicionando Sketch no UI top-right');
-                view.ui.add(sketch, 'top-right');
-                sketchRef.current = sketch;
+            view.ui.add(sketch, 'top-right');
+            sketchRef.current = sketch;
 
-                // Auto-ativar modo polígono assim que o Sketch estiver pronto
-                sketch.create('polygon');
+            // Auto-ativar modo polígono
+            sketch.create('polygon');
 
-                sketch.on('create', (event) => {
-                    if (event.state === 'complete' && event.graphic?.geometry?.type === 'polygon') {
-                        const geo = webMercatorUtils.webMercatorToGeographic(
-                            event.graphic.geometry
-                        ) as __esri.Polygon;
-                        if (geo.rings && geo.rings.length > 0) {
-                            const geojson = ringsToGeoJSON(geo.rings[0]);
-                            onGeometryChangeRef.current?.(geojson);
-                        }
+            sketch.on('create', (event) => {
+                if (event.state === 'complete' && event.graphic?.geometry?.type === 'polygon') {
+                    const geo = webMercatorUtils.webMercatorToGeographic(
+                        event.graphic.geometry
+                    ) as __esri.Polygon;
+                    if (geo.rings && geo.rings.length > 0) {
+                        const geojson = ringsToGeoJSON(geo.rings[0]);
+                        onGeometryChangeRef.current?.(geojson);
                     }
-                });
+                }
+            });
 
-                sketch.on('update', (event) => {
-                    if (event.state === 'complete' && event.graphics?.[0]?.geometry?.type === 'polygon') {
-                        const geo = webMercatorUtils.webMercatorToGeographic(
-                            event.graphics[0].geometry
-                        ) as __esri.Polygon;
-                        if (geo.rings && geo.rings.length > 0) {
-                            const geojson = ringsToGeoJSON(geo.rings[0]);
-                            onGeometryChangeRef.current?.(geojson);
-                        }
+            sketch.on('update', (event) => {
+                if (event.state === 'complete' && event.graphics?.[0]?.geometry?.type === 'polygon') {
+                    const geo = webMercatorUtils.webMercatorToGeographic(
+                        event.graphics[0].geometry
+                    ) as __esri.Polygon;
+                    if (geo.rings && geo.rings.length > 0) {
+                        const geojson = ringsToGeoJSON(geo.rings[0]);
+                        onGeometryChangeRef.current?.(geojson);
                     }
-                });
-            }, (err: any) => {
-                console.error('Erro no Sketch:', err);
+                }
             });
         } else {
             // Remove LayerList e Sketch ao sair do modo desenho

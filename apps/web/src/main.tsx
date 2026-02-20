@@ -1,4 +1,3 @@
-import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import esriConfig from "@arcgis/core/config";
 import * as intl from "@arcgis/core/intl";
@@ -15,7 +14,5 @@ import './styles/map.css'
 
 
 createRoot(document.getElementById('root')!).render(
-    <StrictMode>
-        <App />
-    </StrictMode>,
+    <App />,
 )
