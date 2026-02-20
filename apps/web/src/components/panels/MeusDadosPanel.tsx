@@ -59,7 +59,7 @@ const EMPTY: DadosCadastro = {
 type SectionKey = 'pessoal' | 'endereco' | 'imovel' | 'conjuge' | 'profissional' | 'conta';
 
 export default function MeusDadosPanel() {
-    const { role, setPanel } = useApp();
+    const { role, setPanel, refreshUser } = useApp();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
@@ -143,8 +143,10 @@ export default function MeusDadosPanel() {
             setSaved(true);
             toast.success('Perfil atualizado com sucesso');
 
-            // Reload para aplicar mudanças de role no AppShell se necessário
-            setTimeout(() => window.location.reload(), 1500);
+            // Re-inicializa o contexto para aplicar mudanças de role sem recarregar a página
+            if (currentRole !== role) {
+                setTimeout(() => refreshUser(), 1500);
+            }
         } catch (err) {
             console.error(err);
             toast.error('Erro ao atualizar dados');

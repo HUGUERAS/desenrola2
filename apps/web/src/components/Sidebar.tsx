@@ -15,6 +15,7 @@ import DesenharPanel from './panels/DesenharPanel';
 import ConfrontacoesPanel from './panels/ConfrontacoesPanel';
 import DocumentosPanel from './panels/DocumentosPanel';
 import StatusPanel from './panels/StatusPanel';
+import LoteamentosPanel from './panels/LoteamentosPanel';
 
 import {
     FolderOpen,
@@ -28,6 +29,7 @@ import {
     Upload,
     DollarSign,
     Clock,
+    Map,
 } from 'lucide-react';
 
 interface MenuItem {
@@ -39,6 +41,7 @@ interface MenuItem {
 
 const TOPOGRAFO_MENU: MenuItem[] = [
     { id: 'projetos', label: 'Projetos', icon: <FolderOpen size={18} /> },
+    { id: 'loteamentos', label: 'Loteamentos', icon: <Map size={18} /> },
     { id: 'lotes', label: 'Lotes', icon: <Layers size={18} /> },
     { id: 'desenhar', label: 'Desenhar', icon: <PenTool size={18} />, section: 'FERRAMENTAS' },
     { id: 'validar', label: 'Validar Desenho', icon: <CheckCircle size={18} /> },
@@ -119,6 +122,7 @@ function SidebarPanelContent() {
 
     switch (panel) {
         case 'projetos': return <ProjetosPanel />;
+        case 'loteamentos': return <LoteamentosPanel />;
         case 'lotes': return <LotesPanel />;
         case 'validar': return <ValidarPanel />;
         case 'vizinhos': return <VizinhosPanel />;

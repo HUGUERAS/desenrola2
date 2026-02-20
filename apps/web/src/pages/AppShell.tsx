@@ -3,6 +3,7 @@
  * Mapa SEMPRE visível + sidebar com painéis dinâmicos
  */
 import { useState, useEffect, useCallback, createContext, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import apiClient from '../services/api';
 import { supabase } from '../lib/supabase';
 import Header from '../components/Header';
@@ -16,6 +17,7 @@ import '../styles/map.css';
 
 export type SidebarPanel =
     | 'projetos'
+    | 'loteamentos'
     | 'lotes'
     | 'desenhar'
     | 'meus-dados'
@@ -66,6 +68,7 @@ interface AppContextValue extends AppState {
     setMapGeometries: (geoms: LoteGeometry[]) => void;
     handleMapDrawingChange: (geojson: Record<string, any>) => void;
     handleSaveDrawing: (geojson: Record<string, any>) => Promise<{ ok: boolean }>;
+    refreshUser: () => Promise<void>;
     logout: () => void;
 }
 
@@ -79,6 +82,7 @@ export const useApp = () => {
 // ── Component ──
 
 export default function AppShell() {
+    const navigate = useNavigate();
     const [state, setState] = useState<AppState>({
         panel: 'projetos',
         role: 'proprietario',
@@ -91,65 +95,61 @@ export default function AppShell() {
 
     const [loading, setLoading] = useState(true);
 
-    // Verificar autenticação e role ao montar
+    const initUser = useCallback(async () => {
+        try {
+            const {
+                data: { session },
+            } = await supabase.auth.getSession();
+
+            if (session?.access_token) {
+                apiClient.setToken(session.access_token);
+                const perfilRes = await apiClient.getPerfilMe();
+                if (perfilRes.data) {
+                    const role = (perfilRes.data.role as UserRole) || 'proprietario';
+                    let lote: Lote | null = null;
+                    let projeto: Projeto | null = null;
+
+                    if (role === 'proprietario') {
+                        const lotesRes = await apiClient.getMyLotes();
+                        if (lotesRes.data && lotesRes.data.length > 0) {
+                            lote = lotesRes.data[0] as unknown as Lote;
+                            const geometries: LoteGeometry[] = lotesRes.data.map((l: any) => ({
+                                id: l.id,
+                                wkt: l.geom,
+                                geojson: l.geojson,
+                                label: l.nome_cliente,
+                                type: l.status === 'APROVADO' ? 'oficial' : 'rascunho'
+                            }));
+                            setState(prev => ({ ...prev, mapGeometries: geometries }));
+
+                            const projsRes = await apiClient.getProjects();
+                            projeto = projsRes.data?.find(p => p.id === lote?.projeto_id) as unknown as Projeto || null;
+                        }
+                    }
+
+                    setState((prev) => ({
+                        ...prev,
+                        role,
+                        loteAtual: lote,
+                        projetoAtual: projeto,
+                        panel: role === 'topografo' ? 'projetos' : (lote ? 'status' : 'desenhar'),
+                    }));
+                }
+            } else {
+                navigate('/login');
+            }
+        } catch (err) {
+            console.error('Erro ao inicializar:', err);
+            setState((prev) => ({ ...prev, role: 'topografo', panel: 'projetos' }));
+        } finally {
+            setLoading(false);
+        }
+    }, [navigate]);
+
     // Verificar autenticação e role ao montar
     useEffect(() => {
-        const init = async () => {
-            try {
-                const {
-                    data: { session },
-                } = await supabase.auth.getSession();
-
-                if (session?.access_token) {
-                    apiClient.setToken(session.access_token);
-                    const perfilRes = await apiClient.getPerfilMe();
-                    if (perfilRes.data) {
-                        const role = (perfilRes.data.role as UserRole) || 'proprietario';
-                        let lote: Lote | null = null;
-                        let projeto: Projeto | null = null;
-
-                        if (role === 'proprietario') {
-                            const lotesRes = await apiClient.getMyLotes();
-                            if (lotesRes.data && lotesRes.data.length > 0) {
-                                lote = lotesRes.data[0] as unknown as Lote;
-                                // Converter Lote para LoteGeometry
-                                const geometries: LoteGeometry[] = lotesRes.data.map((l: any) => ({
-                                    id: l.id,
-                                    wkt: l.geom,
-                                    geojson: l.geojson,
-                                    label: l.nome_cliente,
-                                    type: l.status === 'APROVADO' ? 'oficial' : 'rascunho'
-                                }));
-                                setState(prev => ({ ...prev, mapGeometries: geometries }));
-
-                                // Tentar achar o projeto dele
-                                const projsRes = await apiClient.getProjects();
-                                projeto = projsRes.data?.find(p => p.id === lote?.projeto_id) as unknown as Projeto || null;
-                            }
-                        }
-
-                        setState((prev) => ({
-                            ...prev,
-                            role,
-                            loteAtual: lote,
-                            projetoAtual: projeto,
-                            panel: role === 'topografo' ? 'projetos' : (lote ? 'status' : 'desenhar'),
-                        }));
-                    }
-                } else {
-                    // Se não tiver sessão, redirecionar para login
-                    window.location.href = '/login';
-                }
-            } catch (err) {
-                console.error('Erro ao inicializar:', err);
-                // Fallback também em caso de erro
-                setState((prev) => ({ ...prev, role: 'topografo', panel: 'projetos' }));
-            } finally {
-                setLoading(false);
-            }
-        };
-        init();
-    }, []);
+        initUser();
+    }, [initUser]);
 
     // 1. Atualiza apenas o mapa (local)
     const handleMapDrawingChange = useCallback((geojson: Record<string, any>) => {
@@ -231,10 +231,11 @@ export default function AppShell() {
         setMapGeometries: (geoms) => setState((prev) => ({ ...prev, mapGeometries: geoms })),
         handleMapDrawingChange,
         handleSaveDrawing,
+        refreshUser: initUser,
         logout: async () => {
             await supabase.auth.signOut();
             apiClient.logout();
-            window.location.href = '/login';
+            navigate('/login');
         },
     };
 

@@ -22,7 +22,7 @@ async def get_current_user(token: Optional[str] = Depends(get_token)):
             response = await client.get(
                 f"{SUPABASE_URL}/auth/v1/user",
                 headers={"Authorization": f"Bearer {token}", "apikey": SUPABASE_SERVICE_KEY},
-                timeout=5.0
+                timeout=15.0
             )
         if response.status_code != 200: return None
         user_data = response.json()
@@ -45,6 +45,6 @@ async def get_perfil(user: dict = Depends(get_current_user_required)):
     return {**profile, "user_id": user["user_id"]}
 
 async def require_topografo(perfil: dict = Depends(get_perfil)):
-    # if perfil.get("role") != "topografo":
-    #     raise HTTPException(status_code=403, detail="Acesso restrito (Role Check)")
+    if perfil.get("role") != "topografo":
+        raise HTTPException(status_code=403, detail="Acesso restrito a topógrafos")
     return perfil

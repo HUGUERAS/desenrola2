@@ -14,10 +14,9 @@ import type { ZodType } from 'zod';
 import { supabase } from '../lib/supabase';
 
 const API_URL = import.meta.env.VITE_API_URL ?? '';
-console.log('API Client (v2) initialized with URL:', API_URL);
-// if (!API_URL && import.meta.env.DEV) {
-//     console.error('VITE_API_URL é obrigatório. Configure em .env.');
-// }
+if (!API_URL) {
+    console.error('[API] VITE_API_URL não configurada. Defina a variável no arquivo .env.');
+}
 
 type RetryOptions = {
     retries?: number;
@@ -120,7 +119,14 @@ class ApiClient {
                         signal: controller.signal,
                     });
                     const text = await response.text();
-                    const payload = text ? JSON.parse(text) : null;
+                    let payload: unknown = null;
+                    if (text) {
+                        try {
+                            payload = JSON.parse(text);
+                        } catch {
+                            payload = null;
+                        }
+                    }
 
                     if (!response.ok) {
                         if (response.status === 401) this.clearToken();
