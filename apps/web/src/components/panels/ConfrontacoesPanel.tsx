@@ -11,12 +11,14 @@
  *   Direção (Norte, Sul, Leste, Oeste)
  */
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { useApp } from '../../pages/AppShell';
 import apiClient from '../../services/api';
 import {
     Users, Loader2, Plus, Trash2, Save, CheckCircle,
     ArrowUp, ArrowDown, ArrowLeft, ArrowRight, AlertCircle
 } from 'lucide-react';
+import { formatCPF } from '../../lib/format-utils';
 
 interface Confrontante {
     nome: string;
@@ -58,7 +60,7 @@ export default function ConfrontacoesPanel() {
                     if (Array.isArray(raw) && raw.length > 0) {
                         setConfrontantes(raw.map((c: any) => ({
                             nome: c.nome_confrontante || c.nome || '',
-                            cpf: c.cpf_confrontante || c.cpf || '',
+                            cpf: formatCPF(c.cpf_confrontante || c.cpf || ''),
                             imovel: c.imovel_confrontante || c.imovel || '',
                             matricula: c.matricula_confrontante || c.matricula || '',
                             direcao: c.direcao || c.lado || 'norte',
@@ -104,9 +106,11 @@ export default function ConfrontacoesPanel() {
             }));
             await apiClient.salvarConfrontacoes(loteAtual.id, vizinhos as any);
             setSaved(true);
+            toast.success('Confrontações salvas');
             setTimeout(() => setSaved(false), 3000);
         } catch (err) {
             setError('Erro ao salvar');
+            toast.error('Erro ao salvar');
         } finally {
             setSaving(false);
         }
@@ -176,7 +180,7 @@ export default function ConfrontacoesPanel() {
 
                             <label className="panel-label">CPF *</label>
                             <input className="panel-input" placeholder="#CONF_CPF"
-                                value={c.cpf} onChange={(e) => updateConfrontante(i, 'cpf', e.target.value)} />
+                                value={c.cpf} onChange={(e) => updateConfrontante(i, 'cpf', formatCPF(e.target.value))} />
 
                             <label className="panel-label">Nome do Imóvel</label>
                             <input className="panel-input" placeholder="#CONF_IMOVEL"

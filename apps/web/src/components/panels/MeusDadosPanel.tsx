@@ -9,9 +9,11 @@
  * Esses dados alimentam diretamente os 5 documentos obrigatórios.
  */
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { useApp } from '../../pages/AppShell';
 import { Save, Loader2, AlertCircle, ChevronDown, ChevronRight, CheckCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { formatCPF, formatPhone, formatCEP } from '../../lib/format-utils';
 
 interface DadosCadastro {
     // Pessoais
@@ -79,11 +81,11 @@ export default function MeusDadosPanel() {
                     const m = user.user_metadata || {};
                     setData({
                         nome: m.display_name || m.nome || '',
-                        cpf: m.cpf || '',
+                        cpf: formatCPF(m.cpf || ''),
                         rg: m.rg || '',
                         orgao_exp: m.orgao_exp || '',
                         email: user.email || '',
-                        telefone: m.phone || m.telefone || '',
+                        telefone: formatPhone(m.phone || m.telefone || ''),
                         profissao: m.profissao || '',
                         estado_civil: m.estado_civil || '',
                         nacionalidade: m.nacionalidade || 'Brasileiro(a)',
@@ -93,7 +95,7 @@ export default function MeusDadosPanel() {
                         bairro: m.bairro || '',
                         cidade: m.cidade || '',
                         uf: m.uf || '',
-                        cep: m.cep || '',
+                        cep: formatCEP(m.cep || ''),
                         nome_imovel: m.nome_imovel || projetoAtual?.nome || '',
                         matricula: m.matricula || '',
                         gleba: m.gleba || '',
@@ -101,7 +103,7 @@ export default function MeusDadosPanel() {
                         uf_imovel: m.uf_imovel || '',
                         area_imovel: m.area_imovel || '',
                         conjuge_nome: m.conjuge_nome || '',
-                        conjuge_cpf: m.conjuge_cpf || '',
+                        conjuge_cpf: formatCPF(m.conjuge_cpf || ''),
                         conjuge_rg: m.conjuge_rg || '',
                         conjuge_profissao: m.conjuge_profissao || '',
                         conjuge_nacionalidade: m.conjuge_nacionalidade || '',
@@ -125,6 +127,7 @@ export default function MeusDadosPanel() {
                 data: { display_name: data.nome, ...metadata },
             });
             setSaved(true);
+            toast.success('Dados salvos');
             setTimeout(() => setSaved(false), 3000);
         } catch (err) {
             console.error(err);
@@ -189,7 +192,7 @@ export default function MeusDadosPanel() {
                         <div style={{ flex: 1 }}>
                             <label className="panel-label">CPF *</label>
                             <input className="panel-input" placeholder="#PROP_CPF"
-                                value={data.cpf} onChange={(e) => set('cpf', e.target.value)} />
+                                value={data.cpf} onChange={(e) => set('cpf', formatCPF(e.target.value))} />
                         </div>
                         <div style={{ flex: 1 }}>
                             <label className="panel-label">RG *</label>
@@ -216,7 +219,7 @@ export default function MeusDadosPanel() {
 
                     <label className="panel-label">Telefone *</label>
                     <input className="panel-input" type="tel" placeholder="(62) 99999-0000"
-                        value={data.telefone} onChange={(e) => set('telefone', e.target.value)} />
+                        value={data.telefone} onChange={(e) => set('telefone', formatPhone(e.target.value))} />
 
                     <div style={{ display: 'flex', gap: 6 }}>
                         <div style={{ flex: 1 }}>
@@ -283,7 +286,7 @@ export default function MeusDadosPanel() {
 
                     <label className="panel-label">CEP</label>
                     <input className="panel-input" placeholder="00000-000"
-                        value={data.cep} onChange={(e) => set('cep', e.target.value)} />
+                        value={data.cep} onChange={(e) => set('cep', formatCEP(e.target.value))} />
                 </div>
             )}
 
@@ -341,8 +344,8 @@ export default function MeusDadosPanel() {
                             <div style={{ display: 'flex', gap: 6 }}>
                                 <div style={{ flex: 1 }}>
                                     <label className="panel-label">CPF</label>
-                                    <input className="panel-input"
-                                        value={data.conjuge_cpf} onChange={(e) => set('conjuge_cpf', e.target.value)} />
+                                    <input className="panel-input" placeholder="000.000.000-00"
+                                        value={data.conjuge_cpf} onChange={(e) => set('conjuge_cpf', formatCPF(e.target.value))} />
                                 </div>
                                 <div style={{ flex: 1 }}>
                                     <label className="panel-label">RG</label>

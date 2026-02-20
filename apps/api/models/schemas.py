@@ -52,6 +52,10 @@ class ProjetoCreate(BaseModel):
     nome: str = Field(..., min_length=1)
     descricao: Optional[str] = None
     tipo: str = "INDIVIDUAL"
+    endereco: Optional[str] = None
+    cidade: Optional[str] = None
+    estado: Optional[str] = None
+    observacoes: Optional[str] = None
 
 
 class ProjetoUpdate(BaseModel):
@@ -116,6 +120,7 @@ class ConfrontacaoSalvar(BaseModel):
     cpf: Optional[str] = None
     matricula: Optional[str] = None
     descricao: Optional[str] = None
+    imovel: Optional[str] = None  # Nome do imóvel confrontante (doc 03 SEAPA)
 
 
 # ── Perfil ──
@@ -132,6 +137,9 @@ class OrcamentoCreate(BaseModel):
     valor: float
     status: str = "RASCUNHO"
     observacoes: Optional[str] = None
+    data_emissao: Optional[str] = None
+    data_vencimento: Optional[str] = None
+    cliente_nome: Optional[str] = None
 
 
 class OrcamentoUpdate(BaseModel):
@@ -145,6 +153,7 @@ class DespesaCreate(BaseModel):
     descricao: str
     valor: float
     data: Optional[str] = None
+    data_vencimento: Optional[str] = None
     categoria: Optional[str] = None
     observacoes: Optional[str] = None
 
@@ -163,6 +172,7 @@ class PagamentoCreate(BaseModel):
     valor_pago: float = 0.0
     status: str = "PENDENTE"
     data_pagamento: Optional[str] = None
+    data_vencimento: Optional[str] = None
     metodo_pagamento: Optional[str] = None
     observacoes: Optional[str] = None
 

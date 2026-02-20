@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { signUp, registerSchema, RegisterData } from '@/lib/auth'
 import { z } from 'zod'
 
@@ -27,7 +28,7 @@ export default function Register({ onSuccess, onToggleMode }: Props) {
             registerSchema.parse(formData)
 
             await signUp(formData)
-            alert('Cadastro realizado! Verifique seu email se necessário.')
+            toast.success('Cadastro realizado! Verifique seu email se necessário.')
             onSuccess()
         } catch (error) {
             if (error instanceof z.ZodError) {

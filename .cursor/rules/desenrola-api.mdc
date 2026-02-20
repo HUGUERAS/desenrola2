@@ -1,0 +1,34 @@
+---
+description: Padronizar uso de apiClient e Zod no frontend
+globs: "**/services/*.ts"
+alwaysApply: false
+---
+
+# API Client — Padrões Desenrola
+
+## apiClient
+
+- Usar `apiClient` de `services/api.ts` para todas as chamadas ao backend.
+- **Não usar** MockAPI, useKV ou fetch direto.
+- `apiClient.setToken(token)` após login Supabase.
+- Métodos retornam `{ data?, error? }`. Sempre tratar `res.error`.
+
+## Validação Zod
+
+- Schemas em `services/schemas.ts` (ProjectSchema, LoteSchema, DespesaSchema, etc.).
+- Respostas são validadas automaticamente. Se alterar contrato da API, atualizar schemas.
+
+## Exemplo
+
+```typescript
+// ✅ Correto
+const res = await apiClient.getLotes(projetoAtual.id);
+if (res.error) {
+  setError(res.error);
+  return;
+}
+setLotes(res.data || []);
+
+// ❌ Evitar
+const data = await fetch('/api/lotes').then(r => r.json());
+```

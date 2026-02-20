@@ -24,8 +24,16 @@ async def criar_projeto(body: ProjetoCreate, perfil: dict = Depends(get_perfil))
         "nome": body.nome,
         "descricao": body.descricao,
         "tipo": body.tipo,
-        "tenant_id": perfil.get("tenant_id")
+        "tenant_id": perfil.get("tenant_id"),
     }
+    if body.endereco is not None:
+        data["endereco"] = body.endereco
+    if body.cidade is not None:
+        data["cidade"] = body.cidade
+    if body.estado is not None:
+        data["estado"] = body.estado
+    if body.observacoes is not None:
+        data["observacoes"] = body.observacoes
     res = supabase.table("projetos").insert(data).execute()
     if not res.data:
         raise HTTPException(status_code=500, detail="Erro ao criar projeto na base de dados")

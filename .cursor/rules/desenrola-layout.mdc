@@ -1,0 +1,17 @@
+---
+description: Garantir sidebar + mapa sempre visíveis
+globs: "**/AppShell*.tsx"
+alwaysApply: false
+---
+
+# Layout — Sidebar + Mapa Sempre Visíveis
+
+O Desenrola utiliza um layout fixo onde **sidebar** e **mapa ArcGIS** permanecem visíveis em todas as telas do app autenticado.
+
+## Regras
+
+1. **AppShell** renderiza Sidebar + MapContainer + painel de conteúdo. Não criar rotas full-page dentro do `/app`.
+2. **Novas funcionalidades** devem ser painéis no Sidebar, não páginas isoladas.
+3. **Exceções** (layout sem sidebar/mapa): Login, Signup, Landing — fora do AppShell.
+4. **useApp()** fornece `setPanel`, `panel`, `projetoAtual`, `loteAtual`. Usar para navegação entre painéis.
+5. **MapContainer** não deve ser ocultado ou substituído por layouts alternativos.

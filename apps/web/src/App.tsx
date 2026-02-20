@@ -4,6 +4,7 @@
  */
 import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'sonner';
 import { supabase } from './lib/supabase';
 import apiClient from './services/api';
 import AppShell from './pages/AppShell';
@@ -32,6 +33,7 @@ function App() {
                 {/* Fallback */}
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
+            <Toaster richColors position="top-center" />
         </BrowserRouter>
     );
 }

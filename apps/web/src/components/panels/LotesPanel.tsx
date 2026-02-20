@@ -2,9 +2,11 @@
  * LotesPanel — Lista e criação de lotes do projeto selecionado
  */
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { useApp } from '../../pages/AppShell';
 import apiClient from '../../services/api';
 import { Layers, Plus, ArrowLeft, Loader2, Copy, ExternalLink } from 'lucide-react';
+import { formatCPF, formatPhone } from '../../lib/format-utils';
 
 interface Lote {
     id: number;
@@ -55,9 +57,11 @@ export default function LotesPanel() {
             });
             setShowForm(false);
             setFormData({ nome_cliente: '', email_cliente: '', telefone_cliente: '', cpf_cnpj_cliente: '' });
+            toast.success('Lote criado');
             carregar();
         } catch {
             setError('Erro ao criar lote');
+            toast.error('Erro ao criar lote');
         }
     };
 
@@ -129,15 +133,15 @@ export default function LotesPanel() {
                     />
                     <input
                         className="panel-input"
-                        placeholder="Telefone (opcional)"
+                        placeholder="Telefone (opcional) — (62) 99999-0000"
                         value={formData.telefone_cliente}
-                        onChange={(e) => setFormData({ ...formData, telefone_cliente: e.target.value })}
+                        onChange={(e) => setFormData({ ...formData, telefone_cliente: formatPhone(e.target.value) })}
                     />
                     <input
                         className="panel-input"
-                        placeholder="CPF/CNPJ (opcional)"
+                        placeholder="CPF/CNPJ (opcional) — 000.000.000-00"
                         value={formData.cpf_cnpj_cliente}
-                        onChange={(e) => setFormData({ ...formData, cpf_cnpj_cliente: e.target.value })}
+                        onChange={(e) => setFormData({ ...formData, cpf_cnpj_cliente: formatCPF(e.target.value) })}
                     />
                     <div className="panel-form-actions">
                         <button className="panel-btn panel-btn--primary" onClick={criar}>Criar Lote</button>

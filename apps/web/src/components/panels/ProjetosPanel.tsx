@@ -1,25 +1,35 @@
 /**
  * ProjetosPanel — CRUD de projetos no sidebar
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { toast } from 'sonner';
 import { useApp } from '../../pages/AppShell';
 import apiClient from '../../services/api';
 import { FolderOpen, Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
+
+export type ProjetoStatus = 'RASCUNHO' | 'EM_ANDAMENTO' | 'CONCLUIDO' | 'ARQUIVADO';
 
 interface Projeto {
     id: number;
     nome: string;
     descricao?: string;
     tipo: string;
-    status: string;
+    status: ProjetoStatus | string;
     criado_em?: string;
 }
+
+type TabFiltro = 'pendentes' | 'em_andamento' | 'finalizados' | 'todos';
+
+const PENDENTES_STATUSES: string[] = ['RASCUNHO'];
+const EM_ANDAMENTO_STATUSES: string[] = ['EM_ANDAMENTO'];
+const FINALIZADOS_STATUSES: string[] = ['CONCLUIDO', 'ARQUIVADO'];
 
 export default function ProjetosPanel() {
     const { setProjetoAtual, setPanel } = useApp();
     const [projetos, setProjetos] = useState<Projeto[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [tab, setTab] = useState<TabFiltro>('todos');
     const [showForm, setShowForm] = useState(false);
     const [editId, setEditId] = useState<number | null>(null);
     const [formData, setFormData] = useState({ nome: '', descricao: '', tipo: 'INDIVIDUAL' });
@@ -40,12 +50,33 @@ export default function ProjetosPanel() {
 
     useEffect(() => { carregar(); }, []);
 
+    const { filtrados, counts } = useMemo(() => {
+        const pendentes = projetos.filter((p) => PENDENTES_STATUSES.includes(p.status));
+        const emAndamento = projetos.filter((p) => EM_ANDAMENTO_STATUSES.includes(p.status));
+        const finalizados = projetos.filter((p) => FINALIZADOS_STATUSES.includes(p.status));
+        const filtrados =
+            tab === 'pendentes' ? pendentes :
+                tab === 'em_andamento' ? emAndamento :
+                    tab === 'finalizados' ? finalizados : projetos;
+        return {
+            filtrados,
+            counts: {
+                pendentes: pendentes.length,
+                em_andamento: emAndamento.length,
+                finalizados: finalizados.length,
+                todos: projetos.length,
+            },
+        };
+    }, [projetos, tab]);
+
     const salvar = async () => {
         try {
             if (editId) {
                 await apiClient.updateProject(editId, formData);
+                toast.success('Projeto atualizado');
             } else {
                 await apiClient.createProject(formData);
+                toast.success('Projeto criado');
             }
             setShowForm(false);
             setEditId(null);
@@ -53,6 +84,7 @@ export default function ProjetosPanel() {
             carregar();
         } catch {
             setError('Erro ao salvar');
+            toast.error('Erro ao salvar');
         }
     };
 
@@ -60,9 +92,11 @@ export default function ProjetosPanel() {
         if (!confirm('Excluir projeto?')) return;
         try {
             await apiClient.deleteProject(id);
+            toast.success('Projeto excluído');
             carregar();
         } catch {
             setError('Erro ao excluir');
+            toast.error('Erro ao excluir');
         }
     };
 
@@ -96,6 +130,21 @@ export default function ProjetosPanel() {
             </div>
 
             {error && <div className="panel-error">{error}</div>}
+
+            <div className="panel-tabs">
+                {(['pendentes', 'em_andamento', 'finalizados', 'todos'] as TabFiltro[]).map((t) => (
+                    <button
+                        key={t}
+                        className={`panel-tab ${tab === t ? 'active' : ''}`}
+                        onClick={() => setTab(t)}
+                    >
+                        {t === 'pendentes' ? `Pendentes (${counts.pendentes})` :
+                            t === 'em_andamento' ? `Em Andamento (${counts.em_andamento})` :
+                                t === 'finalizados' ? `Finalizados (${counts.finalizados})` :
+                                    `Todos (${counts.todos})`}
+                    </button>
+                ))}
+            </div>
 
             {showForm && (
                 <div className="panel-form">
@@ -132,13 +181,13 @@ export default function ProjetosPanel() {
             )}
 
             <div className="panel-list">
-                {projetos.length === 0 && !showForm && (
+                {filtrados.length === 0 && !showForm && (
                     <div className="panel-empty">
                         <FolderOpen size={24} />
                         <p>Nenhum projeto</p>
                     </div>
                 )}
-                {projetos.map((p) => (
+                {filtrados.map((p) => (
                     <div key={p.id} className="panel-card" onClick={() => selecionar(p)}>
                         <div className="panel-card-header">
                             <span className="panel-card-title">{p.nome}</span>

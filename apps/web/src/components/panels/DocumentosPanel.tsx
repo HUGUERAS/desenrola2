@@ -4,7 +4,8 @@
  * Cliente: Envia documentos pessoais (RG, Escritura)
  */
 import { useState, useEffect } from 'react';
-import { useApp } from '../../pages/AppShell'; // Ajuste o import conforme seu projeto
+import { toast } from 'sonner';
+import { useApp } from '../../pages/AppShell';
 import apiClient from '../../services/api';
 import { Upload, FileText, CheckCircle, Loader2, Download, AlertCircle } from 'lucide-react';
 
@@ -85,12 +86,13 @@ export default function DocumentosPanel() {
             const res = await apiClient.gerarDocumento(loteAtual.id, 'memorial');
             if (res.data) {
                 await loadGeneratedDocs();
+                toast.success('Documento gerado com sucesso!');
             } else {
-                alert('Erro ao gerar documento: ' + res.error);
+                toast.error('Erro ao gerar documento: ' + (res.error ?? 'Erro desconhecido'));
             }
         } catch (err) {
             console.error(err);
-            alert('Erro ao gerar documento.');
+            toast.error('Erro ao gerar documento.');
         } finally {
             setGenerating(false);
         }

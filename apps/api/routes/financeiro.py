@@ -26,6 +26,14 @@ async def criar_orcamento(data: OrcamentoCreate, perfil: dict = Depends(require_
         "status": data.status or "RASCUNHO",
         "observacoes": data.observacoes,
     }
+    if data.projeto_id is not None:
+        payload["projeto_id"] = data.projeto_id
+    if data.data_emissao is not None:
+        payload["data_emissao"] = data.data_emissao
+    if data.data_vencimento is not None:
+        payload["data_vencimento"] = data.data_vencimento
+    if data.cliente_nome is not None:
+        payload["cliente_nome"] = data.cliente_nome
     res = supabase.table("orcamentos").insert(payload).execute()
     return res.data[0] if res.data else {"ok": True}
 
@@ -37,9 +45,11 @@ async def listar_despesas(perfil: dict = Depends(require_topografo)):
 @router.post("/despesas")
 async def criar_despesa(data: DespesaCreate, perfil: dict = Depends(require_topografo)):
     payload = {
+        "projeto_id": data.projeto_id,
         "descricao": data.descricao,
         "valor": data.valor,
         "data": str(data.data) if data.data else None,
+        "data_vencimento": str(data.data_vencimento) if data.data_vencimento else None,
         "categoria": data.categoria,
         "observacoes": data.observacoes,
     }
