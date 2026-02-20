@@ -26,6 +26,7 @@ import '@arcgis/core/assets/esri/themes/dark/main.css';
 
 import { useApp } from '../../pages/AppShell';
 import { wktToRings, calculateCentroid, geoJSONToRings, ringsToGeoJSON } from '../../lib/geo-utils';
+import { useToolExecution } from '../../hooks/useToolExecution';
 
 /* ── Tipos de camada ── */
 export interface LoteGeometry {
@@ -78,7 +79,7 @@ export default function MapContainer({
     onGeometryChange,
     onLoteClick,
 }: MapContainerProps) {
-    const { setCursorCoords } = useApp();
+    const { setCursorCoords, activeTool, setToolResult, toolLayers } = useApp();
     const mapDivRef = useRef<HTMLDivElement>(null);
     const viewRef = useRef<MapView | null>(null);
     const [mapLoaded, setMapLoaded] = useState(false); // Só para avisar outros effects
@@ -345,6 +346,37 @@ export default function MapContainer({
             }
         };
     }, [drawingEnabled, handleGeomChange, mapLoaded]);
+
+    // ── CAD Tool Execution ──
+    useToolExecution({
+        view: viewRef.current,
+        activeTool,
+        onToolResult: setToolResult,
+    });
+
+    // ── Sync toolLayers visibility/opacity with map layers ──
+    useEffect(() => {
+        const view = viewRef.current;
+        if (!view) return;
+
+        toolLayers.forEach(config => {
+            const layer = view.map.findLayerById(config.id);
+            if (layer) {
+                layer.visible = config.visible;
+                layer.opacity = config.opacity / 100;
+            }
+        });
+    }, [toolLayers, mapLoaded]);
+
+    // ── Disable Sketch when CAD tool active ──
+    useEffect(() => {
+        const sketch = sketchRef.current;
+        if (!sketch) return;
+
+        if (activeTool) {
+            sketch.cancel();
+        }
+    }, [activeTool]);
 
     return (
         <div className="map-container">

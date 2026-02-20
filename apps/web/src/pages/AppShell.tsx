@@ -10,6 +10,7 @@ import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import StatusBar from '../components/StatusBar';
 import MapContainer, { type LoteGeometry } from '../components/maps/MapContainer';
+import type { ToolId, ToolCategory, ToolResult, LayerConfig } from '../types/tools';
 import '../styles/app-shell.css';
 import '../styles/map.css';
 
@@ -20,6 +21,8 @@ export type SidebarPanel =
     | 'loteamentos'
     | 'lotes'
     | 'desenhar'
+    | 'ferramentas'
+    | 'camadas'
     | 'meus-dados'
     | 'confrontacoes'
     | 'validar'
@@ -57,6 +60,10 @@ export interface AppState {
     sidebarOpen: boolean;
     mapCursor: { lat: number; lon: number } | null;
     mapGeometries: LoteGeometry[];
+    activeTool: ToolId | null;
+    activeToolCategory: ToolCategory;
+    toolResult: ToolResult | null;
+    toolLayers: LayerConfig[];
 }
 
 interface AppContextValue extends AppState {
@@ -68,6 +75,11 @@ interface AppContextValue extends AppState {
     setMapGeometries: (geoms: LoteGeometry[]) => void;
     handleMapDrawingChange: (geojson: Record<string, any>) => void;
     handleSaveDrawing: (geojson: Record<string, any>) => Promise<{ ok: boolean }>;
+    setActiveTool: (tool: ToolId | null) => void;
+    setActiveToolCategory: (category: ToolCategory) => void;
+    setToolResult: (result: ToolResult | null) => void;
+    updateToolLayer: (layer: LayerConfig) => void;
+    removeToolLayer: (layerId: string) => void;
     refreshUser: () => Promise<void>;
     logout: () => void;
 }
@@ -91,6 +103,13 @@ export default function AppShell() {
         sidebarOpen: true,
         mapCursor: null,
         mapGeometries: [],
+        activeTool: null,
+        activeToolCategory: 'medicao',
+        toolResult: null,
+        toolLayers: [
+            { id: 'lotes-layer', title: 'Lotes', visible: true, opacity: 100, type: 'base' },
+            { id: 'desenho-layer', title: 'Desenho', visible: true, opacity: 100, type: 'base' },
+        ],
     });
 
     const [loading, setLoading] = useState(true);
@@ -231,6 +250,20 @@ export default function AppShell() {
         setMapGeometries: (geoms) => setState((prev) => ({ ...prev, mapGeometries: geoms })),
         handleMapDrawingChange,
         handleSaveDrawing,
+        setActiveTool: (tool) => setState((prev) => ({ ...prev, activeTool: tool, toolResult: tool ? prev.toolResult : null })),
+        setActiveToolCategory: (category) => setState((prev) => ({ ...prev, activeToolCategory: category })),
+        setToolResult: (result) => setState((prev) => ({ ...prev, toolResult: result })),
+        updateToolLayer: (layer) => setState((prev) => {
+            const exists = prev.toolLayers.find(l => l.id === layer.id);
+            if (exists) {
+                return { ...prev, toolLayers: prev.toolLayers.map(l => l.id === layer.id ? layer : l) };
+            }
+            return { ...prev, toolLayers: [...prev.toolLayers, layer] };
+        }),
+        removeToolLayer: (layerId) => setState((prev) => ({
+            ...prev,
+            toolLayers: prev.toolLayers.filter(l => l.id !== layerId),
+        })),
         refreshUser: initUser,
         logout: async () => {
             await supabase.auth.signOut();

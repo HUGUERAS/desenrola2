@@ -16,6 +16,8 @@ import ConfrontacoesPanel from './panels/ConfrontacoesPanel';
 import DocumentosPanel from './panels/DocumentosPanel';
 import StatusPanel from './panels/StatusPanel';
 import LoteamentosPanel from './panels/LoteamentosPanel';
+import FerramentasPanel from './panels/FerramentasPanel';
+import CamadasPanel from './panels/CamadasPanel';
 
 import {
     FolderOpen,
@@ -30,6 +32,7 @@ import {
     DollarSign,
     Clock,
     Map,
+    Wrench,
 } from 'lucide-react';
 
 interface MenuItem {
@@ -44,6 +47,8 @@ const TOPOGRAFO_MENU: MenuItem[] = [
     { id: 'loteamentos', label: 'Loteamentos', icon: <Map size={18} /> },
     { id: 'lotes', label: 'Lotes', icon: <Layers size={18} /> },
     { id: 'desenhar', label: 'Desenhar', icon: <PenTool size={18} />, section: 'FERRAMENTAS' },
+    { id: 'ferramentas', label: 'Ferramentas CAD', icon: <Wrench size={18} /> },
+    { id: 'camadas', label: 'Camadas', icon: <Layers size={18} /> },
     { id: 'validar', label: 'Validar Desenho', icon: <CheckCircle size={18} /> },
     { id: 'vizinhos', label: 'Identificar Vizinhos', icon: <Search size={18} /> },
     { id: 'pecas', label: 'Gerar Peças', icon: <FileText size={18} /> },
@@ -130,6 +135,8 @@ function SidebarPanelContent() {
         case 'financeiro': return <FinanceiroPanel />;
         case 'meus-dados': return <MeusDadosPanel />;
         case 'desenhar': return <DesenharPanel />;
+        case 'ferramentas': return <FerramentasPanel />;
+        case 'camadas': return <CamadasPanel />;
         case 'confrontacoes': return <ConfrontacoesPanel />;
         case 'documentos': return <DocumentosPanel />;
         case 'status': return <StatusPanel />;

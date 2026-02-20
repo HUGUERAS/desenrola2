@@ -8,7 +8,8 @@ import {
     Sparkles, ChevronDown, ChevronRight, ChevronUp,
     Plus, Minus, Edit, Trash2, Search, Eye, EyeOff,
     Download, Upload, Settings, Menu, Home, User, MapPin,
-    FileText, Save, RefreshCw, Copy, ExternalLink,
+    FileText, File, Save, RefreshCw, Copy, ExternalLink,
+    DollarSign,
     type LucideProps
 } from 'lucide-react';
 
@@ -36,7 +37,9 @@ const ICON_MAP: Record<string, React.ComponentType<LucideProps>> = {
     home: Home,
     user: User,
     'map-pin': MapPin,
+    file: File,
     'file-text': FileText,
+    dollar: DollarSign,
     save: Save,
     refresh: RefreshCw,
     copy: Copy,

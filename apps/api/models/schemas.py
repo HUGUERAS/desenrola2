@@ -63,6 +63,10 @@ class ProjetoUpdate(BaseModel):
     descricao: Optional[str] = None
     tipo: Optional[str] = None
     status: Optional[str] = None
+    endereco: Optional[str] = None
+    cidade: Optional[str] = None
+    estado: Optional[str] = None
+    observacoes: Optional[str] = None
 
 
 # ── Lotes ──
@@ -162,8 +166,10 @@ class DespesaUpdate(BaseModel):
     descricao: Optional[str] = None
     valor: Optional[float] = None
     data: Optional[str] = None
+    data_vencimento: Optional[str] = None
     categoria: Optional[str] = None
     observacoes: Optional[str] = None
+    projeto_id: Optional[int] = None
 
 
 class PagamentoCreate(BaseModel):

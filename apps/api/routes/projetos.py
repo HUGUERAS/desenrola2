@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Optional
 from db import supabase
 from auth import get_perfil
-from models.schemas import ProjetoCreate
+from models.schemas import ProjetoCreate, ProjetoUpdate
 
 router = APIRouter(prefix="/api/projetos", tags=["Projetos"])
 
@@ -38,3 +38,24 @@ async def criar_projeto(body: ProjetoCreate, perfil: dict = Depends(get_perfil))
     if not res.data:
         raise HTTPException(status_code=500, detail="Erro ao criar projeto na base de dados")
     return res.data[0]
+
+
+@router.put("/{projeto_id}")
+async def atualizar_projeto(projeto_id: int, body: ProjetoUpdate, perfil: dict = Depends(get_perfil)):
+    """Atualiza projeto existente."""
+    data = {k: v for k, v in body.model_dump().items() if v is not None}
+    if not data:
+        raise HTTPException(status_code=400, detail="Nenhum campo para atualizar")
+    res = supabase.table("projetos").update(data).eq("id", projeto_id).execute()
+    if not res.data:
+        raise HTTPException(status_code=404, detail="Projeto não encontrado")
+    return res.data[0]
+
+
+@router.delete("/{projeto_id}")
+async def excluir_projeto(projeto_id: int, perfil: dict = Depends(get_perfil)):
+    """Exclui projeto."""
+    res = supabase.table("projetos").delete().eq("id", projeto_id).execute()
+    if not res.data:
+        raise HTTPException(status_code=404, detail="Projeto não encontrado")
+    return {"ok": True}

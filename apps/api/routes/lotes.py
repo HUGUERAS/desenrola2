@@ -3,7 +3,7 @@ from typing import Optional, List
 import uuid
 from db import supabase
 from auth import get_perfil, require_topografo
-from models.schemas import LoteCreate, GeometriaInput, StatusLoteInput
+from models.schemas import LoteCreate, GeometriaInput, StatusLoteInput, SalvarConfrontacoesInput
 
 router = APIRouter(prefix="/api/lotes", tags=["Lotes"])
 
@@ -57,3 +57,70 @@ async def obter_lote_por_token(token: str):
     if not res.data:
         raise HTTPException(status_code=404, detail="Link inválido")
     return res.data[0]
+
+
+@router.patch("/{lote_id}/status")
+async def atualizar_status_lote(lote_id: int, body: StatusLoteInput, perfil: dict = Depends(get_perfil)):
+    """Atualiza status do lote."""
+    res = supabase.table("lotes").update({"status": body.status}).eq("id", lote_id).execute()
+    if not res.data:
+        raise HTTPException(status_code=404, detail="Lote nao encontrado")
+    return res.data[0]
+
+
+# ==================== CONFRONTACOES ====================
+
+@router.get("/{lote_id}/confrontacoes")
+async def listar_confrontacoes_lote(lote_id: int, perfil: dict = Depends(get_perfil)):
+    """Lista confrontacoes do lote."""
+    res = supabase.table("confrontacoes").select("*").eq("lote_id", lote_id).execute()
+    return {"confrontacoes": res.data or []}
+
+
+@router.post("/{lote_id}/identificar-vizinhos")
+async def identificar_vizinhos_lote(lote_id: int, perfil: dict = Depends(require_topografo)):
+    """Identifica vizinhos via PostGIS RPC."""
+    try:
+        res = supabase.rpc("buscar_vizinhos_adjacentes", {"lote_id_param": lote_id}).execute()
+        return {"vizinhos": res.data or []}
+    except Exception:
+        return {"vizinhos": [], "message": "Funcao espacial nao configurada"}
+
+
+@router.get("/{lote_id}/sobreposicoes")
+async def obter_sobreposicoes_lote(lote_id: int, perfil: dict = Depends(get_perfil)):
+    """Verifica sobreposicoes do lote."""
+    try:
+        res = supabase.rpc("verificar_sobreposicoes", {"lote_id_param": lote_id}).execute()
+        return {"sobreposicoes": res.data or []}
+    except Exception:
+        return {"sobreposicoes": [], "message": "Funcao espacial nao configurada"}
+
+
+@router.post("/{lote_id}/validar-topologia")
+async def validar_topologia_lote(lote_id: int, perfil: dict = Depends(get_perfil)):
+    """Valida topologia do lote."""
+    try:
+        res = supabase.rpc("validar_topologia_lote", {"lote_id_param": lote_id}).execute()
+        return {"resultado": res.data or {}, "valido": True}
+    except Exception:
+        return {"resultado": {}, "valido": False, "message": "Funcao de validacao nao configurada"}
+
+
+@router.post("/{lote_id}/salvar-confrontacoes")
+async def salvar_confrontacoes_lote(lote_id: int, body: SalvarConfrontacoesInput, perfil: dict = Depends(require_topografo)):
+    """Salva confrontacoes revisadas pelo topografo."""
+    supabase.table("confrontacoes").delete().eq("lote_id", lote_id).execute()
+    registros = []
+    for v in body.vizinhos:
+        registro = {
+            "lote_id": lote_id,
+            "direcao": v.direcao,
+            "numero": v.numero,
+        }
+        if v.lote_id and not v.lote_id.startswith("manual"):
+            registro["vizinho_lote_id"] = int(v.lote_id) if v.lote_id.isdigit() else None
+        registros.append(registro)
+    if registros:
+        supabase.table("confrontacoes").insert(registros).execute()
+    return {"ok": True, "total": len(registros)}

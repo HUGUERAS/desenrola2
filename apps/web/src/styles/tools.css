@@ -1,0 +1,440 @@
+/**
+ * tools.css — Estilos para ferramentas CAD e camadas
+ * Dark theme consistente com o Desenrola
+ */
+
+/* ── Tool Category Tabs ── */
+.tool-category-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 8px 12px;
+  overflow-x: auto;
+  border-bottom: 1px solid #1e293b;
+}
+
+.tool-category-tab {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #94a3b8;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.tool-category-tab:hover {
+  background: #1e293b;
+  color: #e2e8f0;
+}
+
+.tool-category-tab.active {
+  background: #1e3a5f;
+  border-color: #3b82f6;
+  color: #60a5fa;
+}
+
+/* ── Tool Grid ── */
+.tool-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 8px 12px;
+}
+
+/* ── Tool Button ── */
+.tool-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 6px;
+  color: #cbd5e1;
+  cursor: pointer;
+  font-size: 12px;
+  text-align: left;
+  transition: all 0.15s;
+  position: relative;
+}
+
+.tool-button:hover:not(.disabled) {
+  background: #1e293b;
+  border-color: #334155;
+  color: #e2e8f0;
+}
+
+.tool-button.active {
+  background: #1e3a5f;
+  border-color: #3b82f6;
+  color: #60a5fa;
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.3);
+}
+
+.tool-button.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.tool-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tool-shortcut {
+  font-size: 9px;
+  padding: 1px 4px;
+  background: #334155;
+  border-radius: 3px;
+  color: #94a3b8;
+  font-family: monospace;
+}
+
+/* ── Active Tool Bar ── */
+.tool-active-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin: 4px 12px;
+  background: #1e3a5f;
+  border: 1px solid #3b82f6;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #60a5fa;
+}
+
+.tool-active-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #3b82f6;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.tool-active-label {
+  flex: 1;
+  font-weight: 500;
+}
+
+.tool-cancel-btn {
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  background: transparent;
+  border: 1px solid #475569;
+  border-radius: 4px;
+  color: #94a3b8;
+  cursor: pointer;
+}
+
+.tool-cancel-btn:hover {
+  background: #334155;
+  color: #e2e8f0;
+}
+
+/* ── Tool Info / Error ── */
+.tool-info-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  margin: 4px 12px;
+  background: #1e293b;
+  border-radius: 4px;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.tool-error-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  margin: 4px 12px;
+  background: #3b1219;
+  border: 1px solid #b91c1c;
+  border-radius: 4px;
+  font-size: 11px;
+  color: #fca5a5;
+}
+
+/* ── Tool Option (Buffer distance, etc) ── */
+.tool-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.tool-option label {
+  white-space: nowrap;
+}
+
+.tool-input {
+  flex: 1;
+  padding: 4px 8px;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  color: #e2e8f0;
+  font-size: 12px;
+  max-width: 80px;
+}
+
+.tool-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+/* ── Tool Result ── */
+.tool-result {
+  margin: 8px 12px;
+  padding: 10px;
+  background: #0f2a1e;
+  border: 1px solid #16a34a;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.tool-result-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #4ade80;
+  font-weight: 600;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  font-size: 10px;
+}
+
+.tool-result-value {
+  color: #e2e8f0;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.tool-result-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tool-result-detail {
+  display: flex;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.detail-key {
+  color: #64748b;
+  min-width: 60px;
+  text-transform: capitalize;
+}
+
+.detail-value {
+  color: #cbd5e1;
+  word-break: break-all;
+}
+
+.detail-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.detail-list li {
+  color: #fca5a5;
+  font-size: 10px;
+  padding: 1px 0;
+}
+
+.detail-pre {
+  background: #0f172a;
+  padding: 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  color: #cbd5e1;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin: 4px 0 0;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+/* ── Empty Hint ── */
+.tool-empty-hint {
+  padding: 20px 16px;
+  text-align: center;
+  color: #475569;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* ── Camadas Panel ── */
+.camadas-actions {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid #1e293b;
+}
+
+.camadas-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.camadas-action-btn:hover {
+  background: #334155;
+  color: #e2e8f0;
+}
+
+.camadas-group {
+  padding: 4px 0;
+}
+
+.camadas-group-title {
+  padding: 6px 12px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #475569;
+}
+
+.camada-item {
+  padding: 6px 12px;
+  border-bottom: 1px solid #0f172a;
+}
+
+.camada-item.camada-hidden {
+  opacity: 0.5;
+}
+
+.camada-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.camada-toggle {
+  display: flex;
+  padding: 4px;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.camada-toggle:hover {
+  background: #1e293b;
+  color: #e2e8f0;
+}
+
+.camada-title {
+  flex: 1;
+  font-size: 12px;
+  color: #cbd5e1;
+}
+
+.camada-remove {
+  display: flex;
+  padding: 4px;
+  background: transparent;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.camada-remove:hover {
+  background: #3b1219;
+  color: #f87171;
+}
+
+.camada-opacity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0 0 28px;
+}
+
+.camada-slider {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: #334155;
+  border-radius: 2px;
+  outline: none;
+}
+
+.camada-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #3b82f6;
+  cursor: pointer;
+}
+
+.camada-opacity-value {
+  font-size: 10px;
+  color: #64748b;
+  min-width: 30px;
+  text-align: right;
+}
+
+/* ── Panel Styles ── */
+.ferramentas-panel .panel-header,
+.camadas-panel .panel-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border-bottom: 1px solid #1e293b;
+  color: #e2e8f0;
+}
+
+.ferramentas-panel .panel-header h3,
+.camadas-panel .panel-header h3 {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.panel-badge {
+  background: #334155;
+  color: #94a3b8;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+}
