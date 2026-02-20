@@ -79,7 +79,7 @@ export default function MapContainer({
     onGeometryChange,
     onLoteClick,
 }: MapContainerProps) {
-    const { setCursorCoords, activeTool, setToolResult, toolLayers } = useApp();
+    const { setCursorCoords, activeTool, setToolResult, toolLayers, sketchTool, setSketchTool } = useApp();
     const mapDivRef = useRef<HTMLDivElement>(null);
     const viewRef = useRef<MapView | null>(null);
     const [mapLoaded, setMapLoaded] = useState(false); // Só para avisar outros effects
@@ -293,6 +293,9 @@ export default function MapContainer({
                 view.ui.add(sketch, 'top-right');
                 sketchRef.current = sketch;
 
+                // Auto-ativar modo polígono assim que o Sketch estiver pronto
+                sketch.create('polygon');
+
                 sketch.on('create', (event) => {
                     if (event.state === 'complete' && event.graphic?.geometry?.type === 'polygon') {
                         const geo = webMercatorUtils.webMercatorToGeographic(
@@ -377,6 +380,16 @@ export default function MapContainer({
             sketch.cancel();
         }
     }, [activeTool]);
+
+    // ── Activate sketch tool from context (DesenharPanel buttons) ──
+    useEffect(() => {
+        if (!sketchTool) return;
+        const sketch = sketchRef.current;
+        if (sketch && drawingEnabled) {
+            sketch.create(sketchTool as 'polygon' | 'rectangle' | 'circle');
+        }
+        setSketchTool(null);
+    }, [sketchTool, drawingEnabled, setSketchTool]);
 
     return (
         <div className="map-container">

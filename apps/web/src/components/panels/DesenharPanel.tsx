@@ -4,7 +4,7 @@
  * Este painel controla: instruções, upload de arquivos, informações do lote.
  */
 import { useState, useRef, useEffect } from 'react';
-import { Upload, Pencil, FileUp, AlertCircle, CheckCircle, MapPin } from 'lucide-react';
+import { Upload, Pencil, FileUp, AlertCircle, CheckCircle, MapPin, Pentagon, Square, Circle } from 'lucide-react';
 import { useApp } from '../../pages/AppShell';
 import apiClient from '../../services/api';
 import { parseGeoFile } from '../../lib/file-parsers';
@@ -19,7 +19,7 @@ interface Lote {
 
 export default function DesenharPanel() {
     console.log('--- DesenharPanel Mount ---');
-    const { loteAtual, handleMapDrawingChange, handleSaveDrawing, mapGeometries } = useApp();
+    const { loteAtual, handleMapDrawingChange, handleSaveDrawing, mapGeometries, setSketchTool } = useApp();
 
     // Estados para Upload e Geometria
     const [uploading, setUploading] = useState(false);
@@ -123,19 +123,41 @@ export default function DesenharPanel() {
             </div>
 
             <div className="panel-section">
-                <h4><Pencil size={14} /> Desenho no Mapa</h4>
-                <div className="panel-info">
-                    {loteAtual
-                        ? 'Você já possui uma área salva. Use as ferramentas no mapa para ajustá-la e clique em salvar para atualizar.'
-                        : 'Use as ferramentas de Polígono no canto superior direito do mapa para delimitar sua área.'}
+                <h4><Pencil size={14} /> Ferramentas de Desenho</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                    <button
+                        className="panel-btn"
+                        onClick={() => setSketchTool('polygon')}
+                        title="Desenhar Polígono"
+                        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', padding: '0.6rem 0.25rem', fontSize: '0.75rem' }}
+                    >
+                        <Pentagon size={20} />
+                        Polígono
+                    </button>
+                    <button
+                        className="panel-btn"
+                        onClick={() => setSketchTool('rectangle')}
+                        title="Desenhar Retângulo"
+                        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', padding: '0.6rem 0.25rem', fontSize: '0.75rem' }}
+                    >
+                        <Square size={20} />
+                        Retângulo
+                    </button>
+                    <button
+                        className="panel-btn"
+                        onClick={() => setSketchTool('circle')}
+                        title="Desenhar Círculo"
+                        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', padding: '0.6rem 0.25rem', fontSize: '0.75rem' }}
+                    >
+                        <Circle size={20} />
+                        Círculo
+                    </button>
                 </div>
-                {!loteAtual && (
-                    <ol className="panel-instructions">
-                        <li>Selecione o ícone de polígono no mapa</li>
-                        <li>Clique nos pontos para contornar a área</li>
-                        <li>Duplo-clique para fechar o desenho</li>
-                    </ol>
-                )}
+                <div className="panel-info" style={{ fontSize: '0.78rem' }}>
+                    {loteAtual
+                        ? 'Clique em uma ferramenta e ajuste a área no mapa. Duplo-clique para fechar o polígono.'
+                        : 'Clique em uma ferramenta acima e depois clique no mapa para delimitar sua área.'}
+                </div>
             </div>
 
             {/* BOTÃO DE SALVAR - FEEDBACK VISUAL PARA O USUÁRIO */}

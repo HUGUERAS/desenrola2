@@ -64,6 +64,7 @@ export interface AppState {
     activeToolCategory: ToolCategory;
     toolResult: ToolResult | null;
     toolLayers: LayerConfig[];
+    sketchTool: string | null;
 }
 
 interface AppContextValue extends AppState {
@@ -80,6 +81,7 @@ interface AppContextValue extends AppState {
     setToolResult: (result: ToolResult | null) => void;
     updateToolLayer: (layer: LayerConfig) => void;
     removeToolLayer: (layerId: string) => void;
+    setSketchTool: (tool: string | null) => void;
     refreshUser: () => Promise<void>;
     logout: () => void;
 }
@@ -106,6 +108,7 @@ export default function AppShell() {
         activeTool: null,
         activeToolCategory: 'medicao',
         toolResult: null,
+        sketchTool: null,
         toolLayers: [
             { id: 'lotes-layer', title: 'Lotes', visible: true, opacity: 100, type: 'base' },
             { id: 'desenho-layer', title: 'Desenho', visible: true, opacity: 100, type: 'base' },
@@ -264,6 +267,7 @@ export default function AppShell() {
             ...prev,
             toolLayers: prev.toolLayers.filter(l => l.id !== layerId),
         })),
+        setSketchTool: (tool) => setState((prev) => ({ ...prev, sketchTool: tool })),
         refreshUser: initUser,
         logout: async () => {
             await supabase.auth.signOut();
