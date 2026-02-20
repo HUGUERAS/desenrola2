@@ -131,6 +131,8 @@ class ConfrontacaoSalvar(BaseModel):
 
 class PerfilSetInput(BaseModel):
     role: str  # topografo | proprietario
+    crea: Optional[str] = None
+    empresa: Optional[str] = None
 
 
 # ── Financeiro ──

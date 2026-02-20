@@ -14,14 +14,14 @@ router = APIRouter(prefix="/api/documents", tags=["Documentos"])
 def gerar_documento(lote_id: str, perfil: dict = Depends(require_topografo)):
     """Gera um documento para o lote (Ex: Memorial). Apenas topógrafos."""
     try:
-        # 1. Buscar dados da property
-        lote_res = supabase.table("properties").select("*").eq("id", lote_id).execute()
+        # 1. Buscar dados do lote
+        lote_res = supabase.table("lotes").select("*").eq("id", lote_id).execute()
         if not lote_res.data:
             raise HTTPException(status_code=404, detail="Lote não encontrado")
         lote = lote_res.data[0]
 
         # 2. Buscar confrontações
-        vizinhos_res = supabase.table("confrontacoes").select("*").eq("property_id", lote_id).execute()
+        vizinhos_res = supabase.table("confrontacoes").select("*").eq("lote_id", lote_id).execute()
         vizinhos = vizinhos_res.data or []
 
         # 3. Gerar conteúdo

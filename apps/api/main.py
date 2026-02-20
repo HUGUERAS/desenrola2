@@ -68,9 +68,9 @@ async def set_perfil_role(body: PerfilSetInput, perfil: dict = Depends(get_perfi
         data = {"user_id": perfil["user_id"], "role": role}
         
         # Extra fields for topografo
-        if role == "topografo" and hasattr(body, 'crea'):
-            data["crea"] = getattr(body, 'crea')
-            data["empresa"] = getattr(body, 'empresa', '')
+        if role == "topografo" and body.crea:
+            data["crea"] = body.crea
+            data["empresa"] = body.empresa or ""
 
         response = supabase.table("perfis").upsert(data, on_conflict="user_id").execute()
         return {"ok": True, "role": role}
@@ -87,7 +87,7 @@ async def acesso_lote_token(token: str):
     """Acesso público por magic link."""
     try:
         response = (
-            supabase.table("properties").select("*").eq("token_acesso", token).execute()
+            supabase.table("lotes").select("*").eq("token_acesso", token).execute()
         )
         if not response.data:
             raise HTTPException(status_code=404, detail="Link inválido ou expirado")
