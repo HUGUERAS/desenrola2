@@ -103,8 +103,6 @@ export default function MapContainer({
     useEffect(() => {
         if (!mapDivRef.current || viewRef.current) return;
 
-        console.log('[DEBUG] Montando instância do ArcGIS...');
-
         esriConfig.assetsPath = '/assets/esri';
         intl.setLocale("pt-BR");
 
@@ -133,30 +131,27 @@ export default function MapContainer({
             () => {
                 viewRef.current = view;
                 setMapLoaded(true);
-                console.log('[DEBUG] ArcGIS View pronto.');
             },
-            (err: any) => console.error('[CRITICAL] Erro ArcGIS:', err)
+            (err: any) => console.error('[MapContainer] Erro ArcGIS:', err)
         );
 
-
-        // Rastrear coordenadas do cursor
+        // Rastrear coordenadas do cursor — usa ref para não recapturar closure
         view.on('pointer-move', (evt) => {
             const pt = view.toMap(evt);
             if (pt) {
-                // Converter Web Mercator → geográfico
                 const geo = webMercatorUtils.webMercatorToGeographic(pt) as __esri.Point;
-                setCursorCoords({ lat: geo.latitude ?? 0, lon: geo.longitude ?? 0 });
+                setCursorCoordsRef.current?.({ lat: geo.latitude ?? 0, lon: geo.longitude ?? 0 });
             }
         });
 
-        // Clique em lote
+        // Clique em lote — usa ref para não recapturar closure
         view.on('click', (evt) => {
             view.hitTest(evt).then((response) => {
                 const hit = response.results.find(
                     (r) => r.type === 'graphic' && r.graphic?.attributes?.loteId
                 );
-                if (hit && hit.type === 'graphic' && onLoteClick) {
-                    onLoteClick(hit.graphic.attributes.loteId);
+                if (hit && hit.type === 'graphic') {
+                    onLoteClickRef.current?.(hit.graphic.attributes.loteId);
                 }
             });
         });
