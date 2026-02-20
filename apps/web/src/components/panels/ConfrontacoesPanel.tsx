@@ -42,7 +42,8 @@ const DIR_ICON: Record<string, React.ReactNode> = {
 const DIRECOES = ['norte', 'sul', 'leste', 'oeste'];
 
 export default function ConfrontacoesPanel() {
-    const { loteAtual } = useApp();
+    const { loteAtual, role } = useApp();
+    const isTopografo = role === 'topografo';
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
@@ -133,9 +134,11 @@ export default function ConfrontacoesPanel() {
         <div className="panel">
             <div className="panel-header">
                 <h3>👥 Confrontações</h3>
-                <button className="panel-btn panel-btn--sm" onClick={addConfrontante}>
-                    <Plus size={14} />
-                </button>
+                {isTopografo && (
+                    <button className="panel-btn panel-btn--sm" onClick={addConfrontante}>
+                        <Plus size={14} />
+                    </button>
+                )}
             </div>
 
             <div className="panel-info" style={{ fontSize: '.75rem' }}>
@@ -149,9 +152,11 @@ export default function ConfrontacoesPanel() {
                 <div className="panel-empty">
                     <Users size={20} />
                     <p>Nenhum confrontante cadastrado</p>
-                    <button className="panel-btn panel-btn--primary" onClick={addConfrontante}>
-                        <Plus size={14} /> Adicionar Confrontante
-                    </button>
+                    {isTopografo && (
+                        <button className="panel-btn panel-btn--primary" onClick={addConfrontante}>
+                            <Plus size={14} /> Adicionar Confrontante
+                        </button>
+                    )}
                 </div>
             ) : (
                 <div className="panel-list">
@@ -161,13 +166,15 @@ export default function ConfrontacoesPanel() {
                                 <span style={{ fontWeight: 600, fontSize: '.8rem' }}>
                                     {DIR_ICON[c.direcao]} Confrontante {i + 1}
                                 </span>
-                                <button className="panel-btn panel-btn--danger panel-btn--sm" onClick={() => removeConfrontante(i)}>
-                                    <Trash2 size={12} />
-                                </button>
+                                {isTopografo && (
+                                    <button className="panel-btn panel-btn--danger panel-btn--sm" onClick={() => removeConfrontante(i)}>
+                                        <Trash2 size={12} />
+                                    </button>
+                                )}
                             </div>
 
                             <label className="panel-label">Direção</label>
-                            <select className="panel-input" value={c.direcao}
+                            <select className="panel-input" value={c.direcao} disabled={!isTopografo}
                                 onChange={(e) => updateConfrontante(i, 'direcao', e.target.value)}>
                                 {DIRECOES.map((d) => (
                                     <option key={d} value={d}>{d.charAt(0).toUpperCase() + d.slice(1)}</option>
@@ -175,30 +182,32 @@ export default function ConfrontacoesPanel() {
                             </select>
 
                             <label className="panel-label">Nome Completo *</label>
-                            <input className="panel-input" placeholder="#CONFRONTANTE"
+                            <input className="panel-input" placeholder="#CONFRONTANTE" readOnly={!isTopografo}
                                 value={c.nome} onChange={(e) => updateConfrontante(i, 'nome', e.target.value)} />
 
                             <label className="panel-label">CPF *</label>
-                            <input className="panel-input" placeholder="#CONF_CPF"
+                            <input className="panel-input" placeholder="#CONF_CPF" readOnly={!isTopografo}
                                 value={c.cpf} onChange={(e) => updateConfrontante(i, 'cpf', formatCPF(e.target.value))} />
 
                             <label className="panel-label">Nome do Imóvel</label>
-                            <input className="panel-input" placeholder="#CONF_IMOVEL"
+                            <input className="panel-input" placeholder="#CONF_IMOVEL" readOnly={!isTopografo}
                                 value={c.imovel} onChange={(e) => updateConfrontante(i, 'imovel', e.target.value)} />
 
                             <label className="panel-label">Matrícula</label>
-                            <input className="panel-input" placeholder="#CONF_MATRICULA"
+                            <input className="panel-input" placeholder="#CONF_MATRICULA" readOnly={!isTopografo}
                                 value={c.matricula} onChange={(e) => updateConfrontante(i, 'matricula', e.target.value)} />
                         </div>
                     ))}
 
-                    <button className="panel-btn panel-btn--primary panel-btn--full" onClick={salvar} disabled={saving}>
-                        {saved
-                            ? <><CheckCircle size={14} /> Salvo!</>
-                            : saving
-                                ? <><Loader2 size={14} className="spin" /> Salvando...</>
-                                : <><Save size={14} /> Salvar Confrontantes</>}
-                    </button>
+                    {isTopografo && (
+                        <button className="panel-btn panel-btn--primary panel-btn--full" onClick={salvar} disabled={saving}>
+                            {saved
+                                ? <><CheckCircle size={14} /> Salvo!</>
+                                : saving
+                                    ? <><Loader2 size={14} className="spin" /> Salvando...</>
+                                    : <><Save size={14} /> Salvar Confrontantes</>}
+                        </button>
+                    )}
                 </div>
             )}
         </div>

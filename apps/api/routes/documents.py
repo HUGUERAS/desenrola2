@@ -44,4 +44,8 @@ def listar_documentos(lote_id: str, perfil: dict = Depends(get_perfil)):
         response = supabase.table("documentos").select("*").eq("property_id", lote_id).execute()
         return response.data or []
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        err_str = str(e)
+        # PGRST205: table doesn't exist yet — return empty list gracefully
+        if "PGRST205" in err_str or "documentos" in err_str:
+            return []
+        raise HTTPException(status_code=500, detail=err_str)
