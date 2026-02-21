@@ -9,6 +9,8 @@ def _parse_cors_origins(raw: str | None) -> list[str]:
     """Converte CORS_ORIGINS em lista limpa, com fallback seguro para dev."""
     if not raw:
         return [
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
             "http://localhost:5173",
             "http://127.0.0.1:5173",
             "http://localhost:4173",

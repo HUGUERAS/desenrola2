@@ -1,6 +1,6 @@
 /**
  * App.tsx — Router mínimo para SPA
- * Apenas 4 rotas: /, /login, /signup, /app
+ * Rotas: /, /login, /signup, /app, /acesso/:token
  */
 import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
@@ -11,6 +11,7 @@ import AppShell from './pages/AppShell';
 import Landing from './pages/Landing';
 import Login from './pages/auth/Login';
 import SignUp from './pages/auth/SignUp';
+import ClienteAcessoPage from './pages/ClienteAcessoPage';
 
 function App() {
     useEffect(() => {
@@ -26,6 +27,9 @@ function App() {
                 <Route path="/" element={<Landing />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<SignUp />} />
+
+                {/* Acesso do cliente via magic link — sem login */}
+                <Route path="/acesso/:token" element={<ClienteAcessoPage />} />
 
                 {/* SPA — requires auth */}
                 <Route path="/app" element={<AppShell />} />
