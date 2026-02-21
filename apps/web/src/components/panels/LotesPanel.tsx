@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { useApp } from '../../pages/AppShell';
 import apiClient from '../../services/api';
 import { getStatusColor, LOTE_STATUS_COLOR } from '../../features/app-shell/status';
-import { Layers, Plus, ArrowLeft, Loader2, Copy, ExternalLink } from 'lucide-react';
+import { Layers, Plus, ArrowLeft, Loader2, Copy, ExternalLink, User } from 'lucide-react';
 import { formatCPF, formatPhone } from '../../lib/format-utils';
 
 interface Lote {
@@ -76,6 +76,11 @@ export default function LotesPanel() {
 
     const selecionar = (lote: Lote) => {
         setLoteAtual(lote as any);
+    };
+
+    const verDados = (lote: Lote) => {
+        setLoteAtual(lote as any);
+        setPanel('cliente-dados');
     };
 
     if (!projetoAtual) {
@@ -167,6 +172,9 @@ export default function LotesPanel() {
                                         {copiedToken === lote.id ? '✓' : <Copy size={12} />}
                                     </button>
                                 )}
+                                <button onClick={(e) => { e.stopPropagation(); verDados(lote); }} title="Ver dados do cliente">
+                                    <User size={12} />
+                                </button>
                                 <button onClick={(e) => { e.stopPropagation(); selecionar(lote); }} title="Abrir">
                                     <ExternalLink size={12} />
                                 </button>

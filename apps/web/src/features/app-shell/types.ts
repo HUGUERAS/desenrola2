@@ -15,7 +15,8 @@ export type SidebarPanel =
     | 'pecas'
     | 'documentos'
     | 'financeiro'
-    | 'status';
+    | 'status'
+    | 'cliente-dados';
 
 export type UserRole = 'topografo' | 'proprietario';
 
@@ -32,6 +33,17 @@ export interface Lote {
     projeto_id: number;
     nome_cliente: string;
     email_cliente?: string;
+    telefone_cliente?: string;
+    cpf_cnpj_cliente?: string;
+    rg_cliente?: string;
+    estado_civil_cliente?: string;
+    municipio?: string;
+    uf?: string;
+    comarca?: string;
+    codigo_sigef?: string;
+    denominacao_imovel?: string;
+    matricula_imovel?: string;
+    token_acesso?: string;
     geom?: string;
     geojson?: Record<string, any>;
     status?: string;

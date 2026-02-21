@@ -15,6 +15,7 @@ import DesenharPanel from './panels/DesenharPanel';
 import ConfrontacoesPanel from './panels/ConfrontacoesPanel';
 import DocumentosPanel from './panels/DocumentosPanel';
 import StatusPanel from './panels/StatusPanel';
+import ClienteDadosPanel from './panels/ClienteDadosPanel';
 
 import {
     FolderOpen,
@@ -128,6 +129,7 @@ function SidebarPanelContent() {
         case 'confrontacoes': return <ConfrontacoesPanel />;
         case 'documentos': return <DocumentosPanel />;
         case 'status': return <StatusPanel />;
+        case 'cliente-dados': return <ClienteDadosPanel />;
         default: return <div className="panel-empty"><p>Painel não encontrado</p></div>;
     }
 }

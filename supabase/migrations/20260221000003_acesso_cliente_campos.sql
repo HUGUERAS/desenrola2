@@ -1,5 +1,6 @@
 -- Campos para fluxo do cliente via magic link
 -- Lote: dados expandidos do proprietário e do imóvel
+ALTER TABLE lotes ADD COLUMN IF NOT EXISTS token_acesso TEXT UNIQUE;
 ALTER TABLE lotes ADD COLUMN
 IF NOT EXISTS municipio TEXT;
 ALTER TABLE lotes ADD COLUMN
