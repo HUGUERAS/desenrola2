@@ -17,10 +17,12 @@ export default function SignUp() {
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+        setSuccess('');
 
         if (!formData.name.trim()) {
             setError('Nome é obrigatório');
@@ -42,24 +44,20 @@ export default function SignUp() {
         setLoading(true);
         try {
             const { data: authData, error: authError } = await supabase.auth.signUp({
-                email: formData.email,
+                email: formData.email.trim().toLowerCase(),
                 password: formData.password,
             });
 
-            if (authError) {
-                if (authError.message.includes('confirm')) {
-                    setError('✉️ Conta criada! Verifique seu email para confirmar.');
-                    setTimeout(() => navigate('/login'), 3000);
-                    return;
-                }
-                throw authError;
-            }
+            if (authError) throw authError;
             if (!authData.user) throw new Error('Erro ao criar usuário');
 
             const token = authData.session?.access_token;
             if (token) {
                 apiClient.setToken(token);
-                await apiClient.setPerfilRole('proprietario');
+                const roleRes = await apiClient.setPerfilRole('proprietario');
+                if (roleRes.error) {
+                    console.warn('Falha ao sincronizar perfil no cadastro:', roleRes.error);
+                }
                 try {
                     await supabase.auth.updateUser({
                         data: { display_name: formData.name },
@@ -67,9 +65,12 @@ export default function SignUp() {
                 } catch (err) {
                     console.warn('Aviso ao atualizar nome:', err);
                 }
+                navigate('/login?registered=true');
+                return;
             }
 
-            navigate('/login?registered=true');
+            setSuccess('✉️ Conta criada! Verifique seu email para confirmar e depois faça login.');
+            setTimeout(() => navigate('/login?registered=true'), 3000);
         } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : 'Erro ao criar conta';
             if (msg.includes('already registered')) {
@@ -119,6 +120,11 @@ export default function SignUp() {
                 {error && (
                     <div style={{ padding: '0.75rem', background: '#fee', color: '#c00', borderRadius: '8px', fontSize: '0.9rem', marginBottom: '1rem' }}>
                         {error}
+                    </div>
+                )}
+                {success && (
+                    <div style={{ padding: '0.75rem', background: '#ecfdf5', color: '#047857', borderRadius: '8px', fontSize: '0.9rem', marginBottom: '1rem' }}>
+                        {success}
                     </div>
                 )}
 

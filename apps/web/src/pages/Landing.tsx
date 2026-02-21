@@ -103,21 +103,18 @@ function SignupForm({ onSuccess }: { onSuccess: () => void }) {
         setLoading(true);
         try {
             const { data: authData, error: authError } = await supabase.auth.signUp({
-                email: formData.email,
+                email: formData.email.trim().toLowerCase(),
                 password: formData.password,
             });
-            if (authError) {
-                if (authError.message.includes('confirm')) {
-                    setSuccess('✉️ Conta criada! Verifique seu email para confirmar.');
-                    return;
-                }
-                throw authError;
-            }
+            if (authError) throw authError;
             if (!authData.user) throw new Error('Erro ao criar usuário');
             const token = authData.session?.access_token;
             if (token) {
                 apiClient.setToken(token);
-                await apiClient.setPerfilRole('proprietario');
+                const roleRes = await apiClient.setPerfilRole('proprietario');
+                if (roleRes.error) {
+                    console.warn('Falha ao sincronizar perfil no cadastro:', roleRes.error);
+                }
                 try {
                     await supabase.auth.updateUser({ data: { display_name: formData.name } });
                 } catch {
