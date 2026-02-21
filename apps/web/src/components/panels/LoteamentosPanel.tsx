@@ -8,6 +8,12 @@ import { toast } from 'sonner';
 import { useApp } from '../../pages/AppShell';
 import apiClient from '../../services/api';
 import {
+    getStatusColor,
+    getStatusLabel,
+    PROJECT_STATUS_COLOR,
+    PROJECT_STATUS_LABEL,
+} from '../../features/app-shell/status';
+import {
     Map,
     Plus,
     Pencil,
@@ -41,20 +47,6 @@ type TabFiltro = 'todos' | 'em_andamento' | 'concluidos';
 
 const EM_ANDAMENTO_STATUSES = ['RASCUNHO', 'EM_ANDAMENTO'];
 const CONCLUIDOS_STATUSES = ['CONCLUIDO', 'ARQUIVADO'];
-
-const statusColor: Record<string, string> = {
-    RASCUNHO: '#94a3b8',
-    EM_ANDAMENTO: '#3b82f6',
-    CONCLUIDO: '#10b981',
-    ARQUIVADO: '#6b7280',
-};
-
-const statusLabel: Record<string, string> = {
-    RASCUNHO: 'Rascunho',
-    EM_ANDAMENTO: 'Em Andamento',
-    CONCLUIDO: 'Concluído',
-    ARQUIVADO: 'Arquivado',
-};
 
 export default function LoteamentosPanel() {
     const { setProjetoAtual, setPanel } = useApp();
@@ -296,9 +288,9 @@ export default function LoteamentosPanel() {
                                 <span className="panel-card-title">{l.nome}</span>
                                 <span
                                     className="panel-card-badge"
-                                    style={{ background: statusColor[l.status] || '#94a3b8' }}
+                                    style={{ background: getStatusColor(l.status, PROJECT_STATUS_COLOR) }}
                                 >
-                                    {statusLabel[l.status] || l.status}
+                                    {getStatusLabel(l.status, PROJECT_STATUS_LABEL)}
                                 </span>
                             </div>
 

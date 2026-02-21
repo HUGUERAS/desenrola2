@@ -5,7 +5,13 @@ import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 import { useApp } from '../../pages/AppShell';
 import apiClient from '../../services/api';
-import { FolderOpen, Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
+import {
+    getStatusColor,
+    getStatusLabel,
+    PROJECT_STATUS_COLOR,
+    PROJECT_STATUS_LABEL,
+} from '../../features/app-shell/status';
+import { FolderOpen, Plus, Pencil, Trash2, Loader2, Search } from 'lucide-react';
 
 export type ProjetoStatus = 'RASCUNHO' | 'EM_ANDAMENTO' | 'CONCLUIDO' | 'ARQUIVADO';
 
@@ -19,6 +25,8 @@ interface Projeto {
 }
 
 type TabFiltro = 'pendentes' | 'em_andamento' | 'finalizados' | 'todos';
+type Ordenacao = 'status' | 'nome';
+type TipoFiltro = 'todos' | 'INDIVIDUAL' | 'LOTEAMENTO';
 
 const PENDENTES_STATUSES: string[] = ['RASCUNHO'];
 const EM_ANDAMENTO_STATUSES: string[] = ['EM_ANDAMENTO'];
@@ -33,6 +41,9 @@ export default function ProjetosPanel() {
     const [showForm, setShowForm] = useState(false);
     const [editId, setEditId] = useState<number | null>(null);
     const [formData, setFormData] = useState({ nome: '', descricao: '', tipo: 'INDIVIDUAL' });
+    const [query, setQuery] = useState('');
+    const [ordenacao, setOrdenacao] = useState<Ordenacao>('status');
+    const [tipoFiltro, setTipoFiltro] = useState<TipoFiltro>('todos');
 
     const carregar = async () => {
         setLoading(true);
@@ -54,10 +65,37 @@ export default function ProjetosPanel() {
         const pendentes = projetos.filter((p) => PENDENTES_STATUSES.includes(p.status));
         const emAndamento = projetos.filter((p) => EM_ANDAMENTO_STATUSES.includes(p.status));
         const finalizados = projetos.filter((p) => FINALIZADOS_STATUSES.includes(p.status));
-        const filtrados =
+        const baseFiltrada =
             tab === 'pendentes' ? pendentes :
                 tab === 'em_andamento' ? emAndamento :
                     tab === 'finalizados' ? finalizados : projetos;
+
+        const porTipo =
+            tipoFiltro === 'todos'
+                ? baseFiltrada
+                : baseFiltrada.filter((p) => p.tipo === tipoFiltro);
+
+        const q = query.trim().toLowerCase();
+        const porBusca = q
+            ? porTipo.filter((p) =>
+                `${p.nome} ${p.descricao || ''} ${p.tipo}`.toLowerCase().includes(q)
+            )
+            : porTipo;
+
+        const statusPriority: Record<string, number> = {
+            EM_ANDAMENTO: 0,
+            RASCUNHO: 1,
+            CONCLUIDO: 2,
+            ARQUIVADO: 3,
+        };
+
+        const filtrados = [...porBusca].sort((a, b) => {
+            if (ordenacao === 'nome') return a.nome.localeCompare(b.nome);
+            const diff = (statusPriority[a.status] ?? 99) - (statusPriority[b.status] ?? 99);
+            if (diff !== 0) return diff;
+            return a.nome.localeCompare(b.nome);
+        });
+
         return {
             filtrados,
             counts: {
@@ -67,7 +105,7 @@ export default function ProjetosPanel() {
                 todos: projetos.length,
             },
         };
-    }, [projetos, tab]);
+    }, [projetos, tab, query, ordenacao, tipoFiltro]);
 
     const salvar = async () => {
         try {
@@ -111,13 +149,6 @@ export default function ProjetosPanel() {
         setPanel('lotes');
     };
 
-    const statusColor: Record<string, string> = {
-        RASCUNHO: '#94a3b8',
-        EM_ANDAMENTO: '#3b82f6',
-        CONCLUIDO: '#10b981',
-        ARQUIVADO: '#6b7280',
-    };
-
     if (loading) return <div className="panel-loading"><Loader2 size={20} className="spin" /> Carregando...</div>;
 
     return (
@@ -144,6 +175,35 @@ export default function ProjetosPanel() {
                                     `Todos (${counts.todos})`}
                     </button>
                 ))}
+            </div>
+
+            <div className="panel-form">
+                <div className="panel-search">
+                    <Search size={12} />
+                    <input
+                        className="panel-input"
+                        placeholder="Buscar por nome, descrição ou tipo"
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                    />
+                </div>
+                <select
+                    className="panel-input"
+                    value={ordenacao}
+                    onChange={(e) => setOrdenacao(e.target.value as Ordenacao)}
+                >
+                    <option value="status">Ordenar: prioridade de status</option>
+                    <option value="nome">Ordenar: nome</option>
+                </select>
+                <select
+                    className="panel-input"
+                    value={tipoFiltro}
+                    onChange={(e) => setTipoFiltro(e.target.value as TipoFiltro)}
+                >
+                    <option value="todos">Tipo: todos</option>
+                    <option value="INDIVIDUAL">Tipo: individual</option>
+                    <option value="LOTEAMENTO">Tipo: loteamento</option>
+                </select>
             </div>
 
             {showForm && (
@@ -191,8 +251,8 @@ export default function ProjetosPanel() {
                     <div key={p.id} className="panel-card" onClick={() => selecionar(p)}>
                         <div className="panel-card-header">
                             <span className="panel-card-title">{p.nome}</span>
-                            <span className="panel-card-badge" style={{ background: statusColor[p.status] || '#94a3b8' }}>
-                                {p.status}
+                            <span className="panel-card-badge" style={{ background: getStatusColor(p.status, PROJECT_STATUS_COLOR) }}>
+                                {getStatusLabel(p.status, PROJECT_STATUS_LABEL)}
                             </span>
                         </div>
                         {p.descricao && <p className="panel-card-desc">{p.descricao}</p>}

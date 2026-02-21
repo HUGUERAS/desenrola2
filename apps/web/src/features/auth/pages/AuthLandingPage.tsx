@@ -57,25 +57,9 @@ export default function AuthLandingPage() {
 
                 <div className="auth-form-wrap">
                     {tab === 'entrar' ? (
-                        <>
-                            <LoginForm onSuccess={() => navigate('/app')} />
-                            <p className="auth-switch">
-                                Não tem conta?{' '}
-                                <button className="auth-switch-link" onClick={() => setTab('cadastro')} type="button">
-                                    Criar Conta
-                                </button>
-                            </p>
-                        </>
+                        <LoginForm onSuccess={() => navigate('/app')} />
                     ) : (
-                        <>
-                            <SignUpForm onSuccess={() => navigate('/app')} />
-                            <p className="auth-switch">
-                                Já tem conta?{' '}
-                                <button className="auth-switch-link" onClick={() => setTab('entrar')} type="button">
-                                    Fazer login
-                                </button>
-                            </p>
-                        </>
+                        <SignUpForm onSuccess={() => navigate('/app')} />
                     )}
                 </div>
             </div>

@@ -5,6 +5,23 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+def _parse_cors_origins(raw: str | None) -> list[str]:
+    """Converte CORS_ORIGINS em lista limpa, com fallback seguro para dev."""
+    if not raw:
+        return [
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+            "http://localhost:4173",
+            "http://127.0.0.1:4173",
+        ]
+
+    origins = [origin.strip() for origin in raw.split(",") if origin.strip()]
+    return origins or [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ]
+
+
 class Settings:
     """App settings."""
 
@@ -21,7 +38,7 @@ class Settings:
     JWT_ALGORITHM = "HS256"
 
     # CORS
-    CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*").split(",")
+    CORS_ORIGINS = _parse_cors_origins(os.getenv("CORS_ORIGINS"))
 
     # Geo validation — SIRGAS 2000 (SRID 4674)
     SRID = 4674

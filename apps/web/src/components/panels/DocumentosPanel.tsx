@@ -120,21 +120,19 @@ export default function DocumentosPanel() {
             </div>
 
             {/* Abas */}
-            <div className="panel-tabs" style={{ display: 'flex', gap: '8px', padding: '0 16px', marginBottom: '16px' }}>
+            <div className="panel-tabs panel-tab-row">
                 <button
-                    className={`btn-tab ${activeTab === 'upload' ? 'active' : ''}`}
+                    className={`panel-tab-btn ${activeTab === 'upload' ? 'active' : ''}`}
                     onClick={() => setActiveTab('upload')}
-                    style={{ flex: 1, padding: '8px', borderRadius: '4px', border: '1px solid #334155', background: activeTab === 'upload' ? '#334155' : 'transparent', color: 'white', cursor: 'pointer' }}
                 >
-                    <Upload size={14} style={{ display: 'inline', marginRight: 4 }} />
+                    <Upload size={14} className="panel-tab-icon" />
                     Enviados
                 </button>
                 <button
-                    className={`btn-tab ${activeTab === 'gerados' ? 'active' : ''}`}
+                    className={`panel-tab-btn ${activeTab === 'gerados' ? 'active' : ''}`}
                     onClick={() => setActiveTab('gerados')}
-                    style={{ flex: 1, padding: '8px', borderRadius: '4px', border: '1px solid #334155', background: activeTab === 'gerados' ? '#334155' : 'transparent', color: 'white', cursor: 'pointer' }}
                 >
-                    <FileText size={14} style={{ display: 'inline', marginRight: 4 }} />
+                    <FileText size={14} className="panel-tab-icon" />
                     Técnicos
                 </button>
             </div>
@@ -187,7 +185,7 @@ export default function DocumentosPanel() {
             {activeTab === 'gerados' && (
                 <div className="panel-content">
                     {role === 'topografo' && (
-                        <div className="panel-actions" style={{ marginBottom: '16px' }}>
+                        <div className="panel-actions panel-actions--spaced">
                             <button
                                 className="btn btn-primary btn-full"
                                 onClick={handleGerarMemorial}

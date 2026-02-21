@@ -2,8 +2,22 @@
   --font-sans: 'Inter', sans-serif;
 
   --color-bg-app: #0f172a;
+  --color-bg-surface: #ffffff;
+  --color-bg-hover: #f1f5f9;
+  --color-bg-soft: #f8fafc;
+  --color-bg-inverse-soft: #1e293b;
+  --color-border: #e2e8f0;
+  --color-border-strong: #334155;
   --color-text-primary: #f3f4f6;
   --color-text-muted: #9ca3af;
+  --color-text-default: #0f172a;
+  --color-text-secondary: #64748b;
+
+  --color-accent: #3b82f6;
+  --color-accent-soft: #dbeafe;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
 
   --auth-bg-0: #0f1117;
   --auth-bg-1: #121a2b;
@@ -15,4 +29,9 @@
   --auth-brand-1: #10b981;
   --auth-brand-2: #3b82f6;
   --auth-danger: #ef4444;
+
+  --app-radius: 8px;
+  --app-shadow-sm: 0 1px 3px rgba(0, 0, 0, .08);
+  --app-shadow-md: 0 4px 12px rgba(0, 0, 0, .1);
+  --app-transition: .15s ease;
 }

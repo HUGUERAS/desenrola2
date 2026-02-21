@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useApp } from '../../pages/AppShell';
 import apiClient from '../../services/api';
+import { getStatusColor, LOTE_STATUS_COLOR } from '../../features/app-shell/status';
 import { Layers, Plus, ArrowLeft, Loader2, Copy, ExternalLink } from 'lucide-react';
 import { formatCPF, formatPhone } from '../../lib/format-utils';
 
@@ -91,14 +92,6 @@ export default function LotesPanel() {
         );
     }
 
-    const statusColor: Record<string, string> = {
-        PENDENTE: '#f59e0b',
-        DESENHO: '#3b82f6',
-        VALIDACAO: '#8b5cf6',
-        APROVADO: '#10b981',
-        REJEITADO: '#ef4444',
-    };
-
     if (loading) return <div className="panel-loading"><Loader2 size={20} className="spin" /> Carregando...</div>;
 
     return (
@@ -161,7 +154,7 @@ export default function LotesPanel() {
                     <div key={lote.id} className="panel-card" onClick={() => selecionar(lote)}>
                         <div className="panel-card-header">
                             <span className="panel-card-title">{lote.nome_cliente}</span>
-                            <span className="panel-card-badge" style={{ background: statusColor[lote.status] || '#94a3b8' }}>
+                            <span className="panel-card-badge" style={{ background: getStatusColor(lote.status, LOTE_STATUS_COLOR) }}>
                                 {lote.status}
                             </span>
                         </div>

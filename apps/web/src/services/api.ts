@@ -82,6 +82,23 @@ class ApiClient {
         localStorage.removeItem('auth_token');
     }
 
+    private async syncTokenFromSession(): Promise<string | null> {
+        try {
+            const {
+                data: { session },
+            } = await supabase.auth.getSession();
+            const accessToken = session?.access_token ?? null;
+            if (accessToken) {
+                this.setToken(accessToken);
+                return accessToken;
+            }
+            this.clearToken();
+            return null;
+        } catch {
+            return this.token;
+        }
+    }
+
     logout() {
         this.clearToken();
     }
@@ -101,10 +118,14 @@ class ApiClient {
         const retryConfig = { ...DEFAULT_RETRY, ...(retry ?? {}) };
         const shouldRetry = isIdempotent(method);
         let attempt = 0;
+        let attemptedReauth = false;
 
         try {
             while (true) {
                 attempt += 1;
+                if (!this.token) {
+                    await this.syncTokenFromSession();
+                }
                 if (typeof navigator !== 'undefined' && !navigator.onLine) {
                     return { error: 'Sem conexão com a internet' };
                 }
@@ -129,7 +150,16 @@ class ApiClient {
                     }
 
                     if (!response.ok) {
-                        if (response.status === 401) this.clearToken();
+                        if (response.status === 401) {
+                            this.clearToken();
+                            if (!attemptedReauth) {
+                                attemptedReauth = true;
+                                const refreshed = await this.syncTokenFromSession();
+                                if (refreshed) {
+                                    continue;
+                                }
+                            }
+                        }
                         const errorMessage =
                             (payload as Record<string, unknown>)?.detail as string ||
                             (payload as Record<string, unknown>)?.message as string ||
@@ -527,6 +557,9 @@ class ApiClient {
     async getDocumentos(loteId: number) {
         return this.request<Array<{
             id: number;
+            lote_id?: number | string;
+            /** @deprecated compatibilidade com schema legado */
+            property_id?: number | string;
             tipo: string;
             formato: string;
             arquivo_url: string;

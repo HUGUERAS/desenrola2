@@ -13,7 +13,16 @@ import MapContainer, { type LoteGeometry } from '../components/maps/MapContainer
 import type { ToolId, ToolCategory, ToolResult, LayerConfig } from '../types/tools';
 import AppLoading from '../features/app-shell/components/AppLoading';
 import { initialAppState, type AppState, type Lote, type Projeto, type SidebarPanel, type UserRole } from '../features/app-shell/types';
-import { buildDrawingGeometry, mapLotesToGeometries, resolveInitialPanel, upsertGeometry } from '../features/app-shell/utils';
+import {
+    buildDrawingGeometry,
+    buildMapClickLote,
+    mapUnknownLotesToGeometries,
+    removeToolLayer,
+    replaceDraftGeometry,
+    resolveInitialPanel,
+    upsertGeometry,
+    upsertToolLayer,
+} from '../features/app-shell/utils';
 import '../styles/app-shell.css';
 import '../styles/map.css';
 
@@ -72,7 +81,7 @@ export default function AppShell() {
                         const lotesRes = await apiClient.getMyLotes();
                         if (lotesRes.data && lotesRes.data.length > 0) {
                             lote = lotesRes.data[0] as unknown as Lote;
-                            const geometries: LoteGeometry[] = mapLotesToGeometries(lotesRes.data);
+                            const geometries: LoteGeometry[] = mapUnknownLotesToGeometries(lotesRes.data);
                             setState(prev => ({ ...prev, mapGeometries: geometries }));
 
                             const projsRes = await apiClient.getProjects();
@@ -141,9 +150,7 @@ export default function AppShell() {
             setState(prev => ({
                 ...prev,
                 loteAtual: novoLote,
-                mapGeometries: prev.mapGeometries
-                    .filter(g => g.id !== 0) // Remove o temporário
-                    .concat(novaGeom)
+                mapGeometries: replaceDraftGeometry(prev.mapGeometries, novaGeom),
             }));
             // Avisa o App Shell sobre a nova geometria
             handleMapDrawingChange(geojson);
@@ -170,16 +177,11 @@ export default function AppShell() {
         setActiveTool: (tool) => setState((prev) => ({ ...prev, activeTool: tool, toolResult: tool ? prev.toolResult : null })),
         setActiveToolCategory: (category) => setState((prev) => ({ ...prev, activeToolCategory: category })),
         setToolResult: (result) => setState((prev) => ({ ...prev, toolResult: result })),
-        updateToolLayer: (layer) => setState((prev) => {
-            const exists = prev.toolLayers.find(l => l.id === layer.id);
-            if (exists) {
-                return { ...prev, toolLayers: prev.toolLayers.map(l => l.id === layer.id ? layer : l) };
-            }
-            return { ...prev, toolLayers: [...prev.toolLayers, layer] };
-        }),
+        updateToolLayer: (layer) =>
+            setState((prev) => ({ ...prev, toolLayers: upsertToolLayer(prev.toolLayers, layer) })),
         removeToolLayer: (layerId) => setState((prev) => ({
             ...prev,
-            toolLayers: prev.toolLayers.filter(l => l.id !== layerId),
+            toolLayers: removeToolLayer(prev.toolLayers, layerId),
         })),
         setSketchTool: (tool) => setState((prev) => ({ ...prev, sketchTool: tool })),
         refreshUser: initUser,
@@ -205,18 +207,36 @@ export default function AppShell() {
                             lotes={state.mapGeometries}
                             drawingEnabled={state.panel === 'desenhar'}
                             onGeometryChange={handleMapDrawingChange}
-                            onLoteClick={(id) => {
-                                const lote = state.mapGeometries.find((l) => l.id === id);
-                                if (lote) {
+                            onLoteClick={async (id) => {
+                                const fallback = state.mapGeometries.find((l) => l.id === id);
+                                if (id > 0) {
+                                    const loteRes = await apiClient.getLote(id);
+                                    if (loteRes.data && typeof loteRes.data === 'object') {
+                                        const lote = loteRes.data as Lote;
+                                        let projeto = state.projetoAtual;
+
+                                        if (!projeto || projeto.id !== lote.projeto_id) {
+                                            const projsRes = await apiClient.getProjects();
+                                            if (projsRes.data) {
+                                                projeto =
+                                                    (projsRes.data.find((p) => p.id === lote.projeto_id) as unknown as Projeto) ||
+                                                    null;
+                                            }
+                                        }
+
+                                        setState((prev) => ({
+                                            ...prev,
+                                            loteAtual: lote,
+                                            projetoAtual: projeto,
+                                        }));
+                                        return;
+                                    }
+                                }
+
+                                if (fallback) {
                                     setState((prev) => ({
                                         ...prev,
-                                        loteAtual: {
-                                            id: lote.id,
-                                            projeto_id: 0,
-                                            nome_cliente: lote.label || '',
-                                            geom: lote.wkt,
-                                            geojson: lote.geojson
-                                        },
+                                        loteAtual: buildMapClickLote(fallback),
                                     }));
                                 }
                             }}

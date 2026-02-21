@@ -5,23 +5,23 @@
     --header-h: 48px;
     --statusbar-h: 28px;
     --sidebar-w: 280px;
-    --bg-primary: #0f172a;
-    --bg-secondary: #1e293b;
-    --bg-surface: #ffffff;
-    --bg-hover: #f1f5f9;
-    --text-primary: #0f172a;
-    --text-secondary: #64748b;
-    --text-muted: #94a3b8;
-    --accent: #3b82f6;
-    --accent-light: #dbeafe;
-    --success: #10b981;
-    --warning: #f59e0b;
-    --error: #ef4444;
-    --border: #e2e8f0;
-    --radius: 8px;
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, .08);
-    --shadow-md: 0 4px 12px rgba(0, 0, 0, .1);
-    --transition: .15s ease;
+    --bg-primary: var(--color-bg-app);
+    --bg-secondary: var(--color-bg-inverse-soft);
+    --bg-surface: var(--color-bg-surface);
+    --bg-hover: var(--color-bg-hover);
+    --text-primary: var(--color-text-default);
+    --text-secondary: var(--color-text-secondary);
+    --text-muted: var(--color-text-muted);
+    --accent: var(--color-accent);
+    --accent-light: var(--color-accent-soft);
+    --success: var(--color-success);
+    --warning: var(--color-warning);
+    --error: var(--color-error);
+    --border: var(--color-border);
+    --radius: var(--app-radius);
+    --shadow-sm: var(--app-shadow-sm);
+    --shadow-md: var(--app-shadow-md);
+    --transition: var(--app-transition);
 }
 
 /* ── Shell Layout ── */
@@ -213,11 +213,16 @@
     font-weight: 600;
 }
 
+.app-sidebar-item.is-disabled {
+    opacity: .45;
+    cursor: not-allowed;
+}
+
 .app-sidebar-panel {
     flex: 1;
     padding: 12px;
     overflow-y: auto;
-    background: #f8fafc;
+    background: var(--color-bg-soft);
 }
 
 .app-sidebar-context {
