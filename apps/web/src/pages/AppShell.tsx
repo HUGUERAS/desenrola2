@@ -11,61 +11,14 @@ import Sidebar from '../components/Sidebar';
 import StatusBar from '../components/StatusBar';
 import MapContainer, { type LoteGeometry } from '../components/maps/MapContainer';
 import type { ToolId, ToolCategory, ToolResult, LayerConfig } from '../types/tools';
+import AppLoading from '../features/app-shell/components/AppLoading';
+import { initialAppState, type AppState, type Lote, type Projeto, type SidebarPanel, type UserRole } from '../features/app-shell/types';
+import { buildDrawingGeometry, mapLotesToGeometries, resolveInitialPanel, upsertGeometry } from '../features/app-shell/utils';
 import '../styles/app-shell.css';
 import '../styles/map.css';
 
 // ── Tipos ──
-
-export type SidebarPanel =
-    | 'projetos'
-    | 'loteamentos'
-    | 'lotes'
-    | 'desenhar'
-    | 'ferramentas'
-    | 'camadas'
-    | 'meus-dados'
-    | 'confrontacoes'
-    | 'validar'
-    | 'vizinhos'
-    | 'pecas'
-    | 'documentos'
-    | 'financeiro'
-    | 'status';
-
-export type UserRole = 'topografo' | 'proprietario';
-
-export interface Projeto {
-    id: number;
-    nome: string;
-    descricao?: string;
-    tipo?: string;
-    status?: string;
-}
-
-export interface Lote {
-    id: number;
-    projeto_id: number;
-    nome_cliente: string;
-    email_cliente?: string;
-    geom?: string;
-    geojson?: Record<string, any>;
-    status?: string;
-}
-
-export interface AppState {
-    panel: SidebarPanel;
-    role: UserRole;
-    projetoAtual: Projeto | null;
-    loteAtual: Lote | null;
-    sidebarOpen: boolean;
-    mapCursor: { lat: number; lon: number } | null;
-    mapGeometries: LoteGeometry[];
-    activeTool: ToolId | null;
-    activeToolCategory: ToolCategory;
-    toolResult: ToolResult | null;
-    toolLayers: LayerConfig[];
-    sketchTool: string | null;
-}
+export type { SidebarPanel, UserRole, Projeto, Lote, AppState };
 
 interface AppContextValue extends AppState {
     setPanel: (panel: SidebarPanel) => void;
@@ -97,23 +50,7 @@ export const useApp = () => {
 
 export default function AppShell() {
     const navigate = useNavigate();
-    const [state, setState] = useState<AppState>({
-        panel: 'projetos',
-        role: 'proprietario',
-        projetoAtual: null,
-        loteAtual: null,
-        sidebarOpen: true,
-        mapCursor: null,
-        mapGeometries: [],
-        activeTool: null,
-        activeToolCategory: 'medicao',
-        toolResult: null,
-        sketchTool: null,
-        toolLayers: [
-            { id: 'lotes-layer', title: 'Lotes', visible: true, opacity: 100, type: 'base' },
-            { id: 'desenho-layer', title: 'Desenho', visible: true, opacity: 100, type: 'base' },
-        ],
-    });
+    const [state, setState] = useState<AppState>(initialAppState);
 
     const [loading, setLoading] = useState(true);
 
@@ -135,13 +72,7 @@ export default function AppShell() {
                         const lotesRes = await apiClient.getMyLotes();
                         if (lotesRes.data && lotesRes.data.length > 0) {
                             lote = lotesRes.data[0] as unknown as Lote;
-                            const geometries: LoteGeometry[] = lotesRes.data.map((l: any) => ({
-                                id: l.id,
-                                wkt: l.geom,
-                                geojson: l.geojson,
-                                label: l.nome_cliente,
-                                type: l.status === 'APROVADO' ? 'oficial' : 'rascunho'
-                            }));
+                            const geometries: LoteGeometry[] = mapLotesToGeometries(lotesRes.data);
                             setState(prev => ({ ...prev, mapGeometries: geometries }));
 
                             const projsRes = await apiClient.getProjects();
@@ -154,7 +85,7 @@ export default function AppShell() {
                         role,
                         loteAtual: lote,
                         projetoAtual: projeto,
-                        panel: role === 'topografo' ? 'projetos' : (lote ? 'status' : 'desenhar'),
+                        panel: resolveInitialPanel(role, lote),
                     }));
                 }
             } else {
@@ -179,25 +110,11 @@ export default function AppShell() {
         const targetId = state.loteAtual?.id ?? 0;
 
         setState(prev => {
-            const exists = prev.mapGeometries.find(g => g.id === targetId);
-            const newGeom: LoteGeometry = {
-                id: targetId,
-                geojson: geojson,
-                type: targetId === 0 ? 'rascunho' : 'ativo',
-                label: targetId === 0 ? 'Nova Área' : prev.loteAtual?.nome_cliente
+            const newGeom: LoteGeometry = buildDrawingGeometry(targetId, geojson, prev.loteAtual?.nome_cliente);
+            return {
+                ...prev,
+                mapGeometries: upsertGeometry(prev.mapGeometries, newGeom)
             };
-
-            if (exists) {
-                return {
-                    ...prev,
-                    mapGeometries: prev.mapGeometries.map(g => g.id === targetId ? newGeom : g)
-                };
-            } else {
-                return {
-                    ...prev,
-                    mapGeometries: [...prev.mapGeometries, newGeom]
-                };
-            }
         });
 
         // Se já for um lote existente, podemos salvar o ajuste automaticamente em background
@@ -274,12 +191,7 @@ export default function AppShell() {
     };
 
     if (loading) {
-        return (
-            <div className="app-loading">
-                <div className="app-loading-spinner" />
-                <p>Carregando Desenrola...</p>
-            </div>
-        );
+        return <AppLoading />;
     }
 
     return (

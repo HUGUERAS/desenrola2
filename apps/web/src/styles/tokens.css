@@ -1,0 +1,18 @@
+:root {
+  --font-sans: 'Inter', sans-serif;
+
+  --color-bg-app: #0f172a;
+  --color-text-primary: #f3f4f6;
+  --color-text-muted: #9ca3af;
+
+  --auth-bg-0: #0f1117;
+  --auth-bg-1: #121a2b;
+  --auth-bg-2: #0a1628;
+  --auth-surface: #1a2030;
+  --auth-border: #2d3748;
+  --auth-text: #f3f4f6;
+  --auth-muted: #9ca3af;
+  --auth-brand-1: #10b981;
+  --auth-brand-2: #3b82f6;
+  --auth-danger: #ef4444;
+}

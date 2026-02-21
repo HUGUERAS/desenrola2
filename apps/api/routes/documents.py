@@ -1,12 +1,17 @@
 """
 Router: Documentos — Geração e listagem.
-✅ Mapeamento: lote_id → property_id (Supabase)
+Padrao: lote_id (com fallback property_id legado)
 """
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from auth import get_perfil, require_topografo
-from db import supabase
-from services.documents import gerar_memorial_texto, save_document_record
+from services.documents import (
+    gerar_memorial_texto,
+    get_confrontacoes_by_lote,
+    get_lote_by_id,
+    list_documentos_by_lote,
+    save_document_record,
+)
 
 router = APIRouter(prefix="/api/documents", tags=["Documentos"])
 
@@ -14,21 +19,15 @@ router = APIRouter(prefix="/api/documents", tags=["Documentos"])
 def gerar_documento(lote_id: str, perfil: dict = Depends(require_topografo)):
     """Gera um documento para o lote (Ex: Memorial). Apenas topógrafos."""
     try:
-        # 1. Buscar dados do lote
-        lote_res = supabase.table("lotes").select("*").eq("id", lote_id).execute()
-        if not lote_res.data:
+        lote = get_lote_by_id(lote_id)
+        if not lote:
             raise HTTPException(status_code=404, detail="Lote não encontrado")
-        lote = lote_res.data[0]
 
-        # 2. Buscar confrontações
-        vizinhos_res = supabase.table("confrontacoes").select("*").eq("lote_id", lote_id).execute()
-        vizinhos = vizinhos_res.data or []
+        vizinhos = get_confrontacoes_by_lote(lote_id)
 
-        # 3. Gerar conteúdo
         conteudo = gerar_memorial_texto(lote, vizinhos)
         fake_url = f"https://api.desenrola.com/docs/{lote_id}/{datetime.now().timestamp()}.txt"
-        
-        # 4. Salvar registro
+
         doc = save_document_record(lote_id, "memorial", fake_url, conteudo)
         return doc
 
@@ -41,8 +40,7 @@ def gerar_documento(lote_id: str, perfil: dict = Depends(require_topografo)):
 def listar_documentos(lote_id: str, perfil: dict = Depends(get_perfil)):
     """Lista documentos de um lote."""
     try:
-        response = supabase.table("documentos").select("*").eq("property_id", lote_id).execute()
-        return response.data or []
+        return list_documentos_by_lote(lote_id)
     except Exception as e:
         err_str = str(e)
         # PGRST205: table doesn't exist yet — return empty list gracefully
