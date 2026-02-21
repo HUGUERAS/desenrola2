@@ -268,12 +268,10 @@ class ApiClient {
 
     async autoCreateLote(geojson: Record<string, any>) {
         // 1. Criar projeto padrão se necessário
-        console.log('Auto-criando lote...');
         const projectsRes = await this.getProjects();
         let project = projectsRes.data?.find(p => p.nome === 'Meu Primeiro Projeto');
 
         if (!project) {
-            console.log('Criando projeto padrão...');
             const createProjRes = await this.createProject({
                 nome: 'Meu Primeiro Projeto',
                 descricao: 'Projeto criado automaticamente ao desenhar',
@@ -296,7 +294,6 @@ class ApiClient {
 
         const nome = user.user_metadata?.display_name || user.email || 'Meu Lote';
 
-        console.log('Criando lote na base...');
         return this.createLote({
             projeto_id: (project as any).id,
             nome_cliente: nome,

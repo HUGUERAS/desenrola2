@@ -11,6 +11,7 @@ import './index.css'
 import './styles/app-shell.css'
 import './styles/panels.css'
 import './styles/map.css'
+import './styles/auth.css'
 
 
 createRoot(document.getElementById('root')!).render(

@@ -62,3 +62,8 @@ ENV/
 
 # ArcGIS Assets
 apps/web/public/assets/esri/
+
+# Local tool artifacts
+tmpclaude-*-cwd
+**/tmpclaude-*-cwd
+nul

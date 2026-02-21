@@ -175,8 +175,6 @@ export default function AppShell() {
 
     // 1. Atualiza apenas o mapa (local)
     const handleMapDrawingChange = useCallback((geojson: Record<string, any>) => {
-        console.log('[DEBUG] Desenho no mapa alterado:', geojson);
-
         // Atualiza a geometria temporária (id: 0) ou a do lote atual no estado local
         const targetId = state.loteAtual?.id ?? 0;
 
@@ -212,7 +210,6 @@ export default function AppShell() {
     const handleSaveDrawing = useCallback(async (geojson: Record<string, any>) => {
         if (!state.role) return { ok: false };
 
-        console.log('[DEBUG] Solicitando salvamento permanente...');
         const res = await apiClient.autoCreateLote(geojson);
 
         if (res.data) {
