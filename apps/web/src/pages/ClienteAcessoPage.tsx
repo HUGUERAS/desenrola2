@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { parseGeoFile } from '../lib/file-parsers';
+import apiClient from '../services/api';
 import '../styles/tokens.css';
 
 // ── Tipos ──
@@ -260,6 +261,7 @@ function ModalVizinho({
         confrontante_tipo: 'FAZENDA',
         nome: '', cpf: '', imovel: '', matricula: '',
     });
+    const [erro, setErro] = useState('');
 
     const upd = (k: keyof VizinhoPorSegmento, v: string) => setForm(p => ({ ...p, [k]: v }));
 
@@ -326,12 +328,16 @@ function ModalVizinho({
                     <Btn variant="secondary" onClick={onFechar} style={{ flex: 1 }}>Cancelar</Btn>
                     <Btn onClick={() => {
                         if (precisaNome && !form.nome && form.confrontante_tipo === 'FAZENDA') {
-                            alert('Informe o nome do vizinho.');
+                            setErro('Informe o nome do vizinho.');
                             return;
                         }
+                        setErro('');
                         onSalvar(form);
                     }} style={{ flex: 2 }}>Salvar</Btn>
                 </div>
+                {erro && (
+                    <p style={{ color: 'var(--color-error)', fontSize: 13, marginTop: 10 }}>{erro}</p>
+                )}
             </div>
         </div>
     );
@@ -402,6 +408,8 @@ export default function ClienteAcessoPage() {
     const [etapa, setEtapa] = useState<Etapa>('loading');
     const [lote, setLote] = useState<LoteAcesso | null>(null);
     const [erroMsg, setErroMsg] = useState('');
+    const [formError, setFormError] = useState('');
+    const [submitError, setSubmitError] = useState('');
     const [salvando, setSalvando] = useState(false);
 
     const [dados, setDados] = useState({
@@ -423,10 +431,10 @@ export default function ClienteAcessoPage() {
     // Carregar lote pelo token
     useEffect(() => {
         if (!token) { setErroMsg('Token inválido.'); setEtapa('erro'); return; }
-        const apiUrl = import.meta.env.VITE_API_URL ?? '';
-        fetch(`${apiUrl}/api/acesso-lote?token=${encodeURIComponent(token)}`)
-            .then(r => { if (!r.ok) throw new Error('Link inválido ou expirado.'); return r.json(); })
-            .then((data: LoteAcesso) => {
+        apiClient.getLotePorToken(token)
+            .then((res) => {
+                if (res.error || !res.data) throw new Error(res.error || 'Link inválido ou expirado.');
+                const data = res.data as LoteAcesso;
                 setLote(data);
                 setDados(d => ({
                     ...d,
@@ -467,21 +475,17 @@ export default function ClienteAcessoPage() {
     const enviar = async () => {
         if (!token) return;
         setSalvando(true);
-        const apiUrl = import.meta.env.VITE_API_URL ?? '';
+        setSubmitError('');
         try {
-            const res = await fetch(`${apiUrl}/api/acesso-lote/salvar?token=${encodeURIComponent(token)}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    ...dados,
-                    vizinhos,
-                    ...(geojsonCliente ? { geojson: geojsonCliente } : {}),
-                }),
+            const res = await apiClient.salvarAcessoLote(token, {
+                ...dados,
+                vizinhos,
+                ...(geojsonCliente ? { geojson: geojsonCliente } : {}),
             });
-            if (!res.ok) throw new Error('Erro ao enviar dados.');
+            if (res.error) throw new Error(res.error);
             setEtapa('enviado');
         } catch (e: unknown) {
-            alert((e as Error).message);
+            setSubmitError((e as Error).message || 'Erro ao enviar dados.');
         } finally {
             setSalvando(false);
         }
@@ -586,11 +590,18 @@ export default function ClienteAcessoPage() {
         </div>
 
         <Btn onClick={() => {
-            if (!dados.nome_cliente || !dados.cpf_cnpj_cliente) { alert('Preencha nome e CPF.'); return; }
+            if (!dados.nome_cliente || !dados.cpf_cnpj_cliente) {
+                setFormError('Preencha nome e CPF para continuar.');
+                return;
+            }
+            setFormError('');
             setEtapa('vizinhos');
         }} style={{ width: '100%', marginTop: 8 }}>
             Próximo →
         </Btn>
+        {formError && (
+            <p style={{ color: 'var(--color-error)', fontSize: 13, marginTop: 10 }}>{formError}</p>
+        )}
     </>);
 
     // ── Etapa 2: Vizinhos ──
@@ -702,5 +713,8 @@ export default function ClienteAcessoPage() {
                 {salvando ? 'Enviando...' : 'Enviar dados'}
             </Btn>
         </div>
+        {submitError && (
+            <p style={{ color: 'var(--color-error)', fontSize: 13, marginTop: 10 }}>{submitError}</p>
+        )}
     </>);
 }

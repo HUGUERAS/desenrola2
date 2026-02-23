@@ -20,9 +20,11 @@ interface DocSlot {
 }
 
 interface GeneratedDoc {
-    id: number;
+    id: number | string;
     tipo: string;
     arquivo_url: string;
+    conteudo?: string;
+    nome_arquivo?: string;
     created_at: string;
 }
 
@@ -47,36 +49,71 @@ export default function DocumentosPanel() {
 
     // Carregar documentos gerados ao abrir
     useEffect(() => {
-        if (loteAtual && activeTab === 'gerados') {
-            loadGeneratedDocs();
+        if (loteAtual) {
+            loadDocuments();
         }
-    }, [loteAtual, activeTab]);
+    }, [loteAtual]);
 
     // Se for topógrafo, padrão é aba de gerados
     useEffect(() => {
         if (role === 'topografo') setActiveTab('gerados');
     }, [role]);
 
-    const loadGeneratedDocs = async () => {
+    const loadDocuments = async () => {
         if (!loteAtual) return;
         setLoadingDocs(true);
         const res = await apiClient.getDocumentos(loteAtual.id);
-        if (res.data) setGeneratedDocs(res.data);
+        if (res.data) {
+            const docs = res.data as GeneratedDoc[];
+            setGeneratedDocs(docs);
+            setSlots((prev) =>
+                prev.map((slot) => {
+                    const latest = docs
+                        .filter((d) => d.tipo === `upload_${slot.id}`)
+                        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+                    if (!latest) {
+                        return { ...slot, uploaded: false, fileName: undefined, url: undefined };
+                    }
+
+                    let nomeArquivo = latest.nome_arquivo;
+                    if (!nomeArquivo && latest.conteudo) {
+                        try {
+                            const meta = JSON.parse(latest.conteudo) as { filename?: string };
+                            nomeArquivo = meta.filename;
+                        } catch {
+                            nomeArquivo = undefined;
+                        }
+                    }
+
+                    return {
+                        ...slot,
+                        uploaded: true,
+                        fileName: nomeArquivo || `arquivo-${slot.id}`,
+                        url: latest.arquivo_url,
+                    };
+                })
+            );
+        }
         setLoadingDocs(false);
     };
 
     const handleUpload = async (slotId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!loteAtual) return;
         const file = e.target.files?.[0];
         if (!file) return;
         setUploading(slotId);
-        // Mock de upload
-        await new Promise((r) => setTimeout(r, 1000));
-        setSlots((prev) =>
-            prev.map((s) =>
-                s.id === slotId ? { ...s, uploaded: true, fileName: file.name } : s
-            )
-        );
+        const res = await apiClient.uploadDocumento(loteAtual.id, slotId, file);
+        if (res.error) {
+            toast.error(res.error);
+            setUploading(null);
+            e.target.value = '';
+            return;
+        }
+
+        toast.success('Documento enviado com sucesso');
+        await loadDocuments();
         setUploading(null);
+        e.target.value = '';
     };
 
     const handleGerarMemorial = async () => {
@@ -85,7 +122,7 @@ export default function DocumentosPanel() {
         try {
             const res = await apiClient.gerarDocumento(loteAtual.id, 'memorial');
             if (res.data) {
-                await loadGeneratedDocs();
+                await loadDocuments();
                 toast.success('Documento gerado com sucesso!');
             } else {
                 toast.error('Erro ao gerar documento: ' + (res.error ?? 'Erro desconhecido'));
@@ -199,14 +236,14 @@ export default function DocumentosPanel() {
 
                     {loadingDocs ? (
                         <div className="panel-loading"><Loader2 className="spin" /> Carregando...</div>
-                    ) : generatedDocs.length === 0 ? (
+                    ) : generatedDocs.filter((doc) => !doc.tipo.startsWith('upload_')).length === 0 ? (
                         <div className="panel-empty-state">
                             <AlertCircle size={24} className="text-muted" />
                             <p>Nenhum documento gerado ainda.</p>
                         </div>
                     ) : (
                         <div className="panel-list">
-                            {generatedDocs.map((doc) => (
+                            {generatedDocs.filter((doc) => !doc.tipo.startsWith('upload_')).map((doc) => (
                                 <div key={doc.id} className="panel-item">
                                     <div className="panel-item-icon">
                                         <FileText size={18} />

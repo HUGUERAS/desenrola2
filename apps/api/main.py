@@ -175,9 +175,34 @@ async def salvar_dados_cliente(token: str, body: AcessoLoteSalvar):
                     "nome": v.nome,
                     "cpf": v.cpf,
                     "imovel": v.imovel,
+                    "matricula": v.matricula,
                     "direcao": "segmento",
                 })
-            supabase.table("confrontacoes").insert(registros).execute()
+            try:
+                supabase.table("confrontacoes").insert(registros).execute()
+            except Exception as insert_err:
+                cardinais = ("norte", "sul", "leste", "oeste")
+                sem_matricula = [{k: v for k, v in row.items() if k != "matricula"} for row in registros]
+                com_direcao_cardinal = [
+                    {
+                        **row,
+                        "direcao": cardinais[int(row.get("segmento_index", 0)) % 4],
+                    }
+                    for row in registros
+                ]
+                sem_matricula_e_cardinal = [{k: v for k, v in row.items() if k != "matricula"} for row in com_direcao_cardinal]
+
+                ultimo_erro = insert_err
+                for tentativa in (sem_matricula, com_direcao_cardinal, sem_matricula_e_cardinal):
+                    try:
+                        supabase.table("confrontacoes").insert(tentativa).execute()
+                        ultimo_erro = None
+                        break
+                    except Exception as retry_err:
+                        ultimo_erro = retry_err
+
+                if ultimo_erro is not None:
+                    raise ultimo_erro
 
         return {"ok": True, "lote_id": lote_id}
 

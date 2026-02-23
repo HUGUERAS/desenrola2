@@ -54,7 +54,10 @@ export default function FinanceiroPanel() {
     const { projetoAtual } = useApp();
     const [tab, setTab] = useState<Tab>('orcamentos');
     const [loading, setLoading] = useState(false);
+    const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
+    const [loadErrors, setLoadErrors] = useState<Partial<Record<Tab, string>>>({});
+    const [formErrors, setFormErrors] = useState<Record<string, string>>({});
     const [orcamentos, setOrcamentos] = useState<any[]>([]);
     const [despesas, setDespesas] = useState<any[]>([]);
     const [pagamentos, setPagamentos] = useState<any[]>([]);
@@ -70,21 +73,80 @@ export default function FinanceiroPanel() {
     const [formPagamento, setFormPagamento] = useState(emptyPagamento);
     const [formOrcamento, setFormOrcamento] = useState(emptyOrcamento);
 
+    const getErrorMessage = (result: any, fallback: string) => {
+        if (!result) return fallback;
+        if (typeof result === 'string') return result;
+        if (typeof result.error === 'string' && result.error.trim()) return result.error;
+        if (typeof result.reason?.message === 'string' && result.reason.message.trim()) return result.reason.message;
+        return fallback;
+    };
+
+    const hasPersistedEntity = (data: unknown) =>
+        !!data && typeof data === 'object' && 'id' in data && (data as { id?: unknown }).id != null;
+
+    const hasOkFlag = (data: unknown) =>
+        !!data && typeof data === 'object' && (data as { ok?: unknown }).ok === true;
+
     const carregar = async () => {
+        const pid = projetoAtual?.id;
+        if (!pid) {
+            setOrcamentos([]);
+            setDespesas([]);
+            setPagamentos([]);
+            setLoadErrors({});
+            setError('');
+            return;
+        }
+
         setLoading(true);
         setError('');
+        setLoadErrors({});
+
         try {
-            const pid = projetoAtual?.id;
-            const [orc, desp, pag] = await Promise.all([
+            const [orc, desp, pag] = await Promise.allSettled([
                 apiClient.getOrcamentos(pid),
                 apiClient.getDespesas(pid),
                 apiClient.getPagamentos(pid),
             ]);
-            if (orc.data) setOrcamentos(orc.data);
-            if (desp.data) setDespesas(desp.data);
-            if (pag.data) setPagamentos(pag.data);
-        } catch {
-            setError('Erro ao carregar dados financeiros');
+
+            const nextLoadErrors: Partial<Record<Tab, string>> = {};
+
+            if (orc.status === 'fulfilled') {
+                if (orc.value.error) {
+                    nextLoadErrors.orcamentos = getErrorMessage(orc.value, 'Erro ao carregar orcamentos');
+                } else {
+                    setOrcamentos(orc.value.data || []);
+                }
+            } else {
+                nextLoadErrors.orcamentos = getErrorMessage(orc, 'Erro ao carregar orcamentos');
+            }
+
+            if (desp.status === 'fulfilled') {
+                if (desp.value.error) {
+                    nextLoadErrors.despesas = getErrorMessage(desp.value, 'Erro ao carregar despesas');
+                } else {
+                    setDespesas(desp.value.data || []);
+                }
+            } else {
+                nextLoadErrors.despesas = getErrorMessage(desp, 'Erro ao carregar despesas');
+            }
+
+            if (pag.status === 'fulfilled') {
+                if (pag.value.error) {
+                    nextLoadErrors.pagamentos = getErrorMessage(pag.value, 'Erro ao carregar pagamentos');
+                } else {
+                    setPagamentos(pag.value.data || []);
+                }
+            } else {
+                nextLoadErrors.pagamentos = getErrorMessage(pag, 'Erro ao carregar pagamentos');
+            }
+
+            setLoadErrors(nextLoadErrors);
+            if (Object.keys(nextLoadErrors).length > 0) {
+                setError('Alguns dados financeiros nao puderam ser carregados.');
+            }
+        } catch (err) {
+            setError(getErrorMessage(err, 'Erro ao carregar dados financeiros'));
         } finally {
             setLoading(false);
         }
@@ -111,6 +173,7 @@ export default function FinanceiroPanel() {
     const fecharModal = () => {
         setShowModal(false);
         setEditId(null);
+        setFormErrors({});
         setFormDespesa(emptyDespesa);
         setFormOrcamento(emptyOrcamento);
         setFormPagamento(emptyPagamento);
@@ -164,94 +227,198 @@ export default function FinanceiroPanel() {
         setShowModal(true);
     };
 
+    const validarOrcamento = () => {
+        const nextErrors: Record<string, string> = {};
+        const valor = Number(formOrcamento.valor);
+        if (!projetoAtual?.id) nextErrors.orcamento_projeto = 'Projeto obrigatorio.';
+        if (!Number.isFinite(valor) || valor <= 0) nextErrors.orcamento_valor = 'Informe um valor maior que zero.';
+        setFormErrors(nextErrors);
+        return Object.keys(nextErrors).length === 0;
+    };
+
+    const validarDespesa = () => {
+        const nextErrors: Record<string, string> = {};
+        const valor = Number(formDespesa.valor);
+        if (!projetoAtual?.id) nextErrors.despesa_projeto = 'Projeto obrigatorio.';
+        if (!formDespesa.descricao.trim()) nextErrors.despesa_descricao = 'Descricao obrigatoria.';
+        if (!Number.isFinite(valor) || valor <= 0) nextErrors.despesa_valor = 'Informe um valor maior que zero.';
+        setFormErrors(nextErrors);
+        return Object.keys(nextErrors).length === 0;
+    };
+
+    const validarPagamento = () => {
+        const nextErrors: Record<string, string> = {};
+        const loteId = Number.parseInt(formPagamento.lote_id, 10);
+        const valorTotal = Number(formPagamento.valor_total);
+        const valorPago = formPagamento.valor_pago === '' ? 0 : Number(formPagamento.valor_pago);
+        if (!Number.isInteger(loteId) || loteId <= 0) nextErrors.pagamento_lote_id = 'ID do lote deve ser inteiro positivo.';
+        if (!Number.isFinite(valorTotal) || valorTotal <= 0) nextErrors.pagamento_valor_total = 'Informe um valor total maior que zero.';
+        if (!Number.isFinite(valorPago) || valorPago < 0) nextErrors.pagamento_valor_pago = 'Valor pago nao pode ser negativo.';
+        setFormErrors(nextErrors);
+        return Object.keys(nextErrors).length === 0;
+    };
+
     // --- Salvar (criar ou atualizar) ---
     const salvarOrcamento = async () => {
+        if (!validarOrcamento()) return;
+        setSaving(true);
         try {
             const data = {
                 projeto_id: projetoAtual?.id,
-                valor: parseFloat(formOrcamento.valor),
+                valor: Number(formOrcamento.valor),
                 observacoes: formOrcamento.observacoes,
                 cliente_nome: formOrcamento.cliente_nome,
                 data_vencimento: formOrcamento.data_vencimento,
             };
             if (editId) {
-                await apiClient.updateOrcamento(editId, { valor: data.valor, observacoes: data.observacoes, status: formOrcamento.status });
+                const res = await apiClient.updateOrcamento(editId, { valor: data.valor, observacoes: data.observacoes, status: formOrcamento.status });
+                if (res.error) {
+                    toast.error(res.error);
+                    return;
+                }
+                if (!hasPersistedEntity(res.data)) {
+                    toast.error('Servidor nao confirmou a atualizacao do orcamento.');
+                    return;
+                }
                 toast.success('Orcamento atualizado');
             } else {
-                await apiClient.createOrcamento(data);
+                const res = await apiClient.createOrcamento(data);
+                if (res.error) {
+                    toast.error(res.error);
+                    return;
+                }
+                if (!hasPersistedEntity(res.data)) {
+                    toast.error('Servidor nao confirmou a criacao do orcamento.');
+                    return;
+                }
                 toast.success('Orcamento criado');
             }
             fecharModal();
-            carregar();
-        } catch {
-            toast.error('Erro ao salvar orcamento');
+            await carregar();
+        } catch (err) {
+            toast.error(getErrorMessage(err, 'Erro ao salvar orcamento'));
+        } finally {
+            setSaving(false);
         }
     };
 
     const salvarDespesa = async () => {
+        if (!validarDespesa()) return;
         if (!projetoAtual) return;
+        setSaving(true);
         try {
             const data = {
                 projeto_id: projetoAtual.id,
-                descricao: formDespesa.descricao,
-                valor: parseFloat(formDespesa.valor),
+                descricao: formDespesa.descricao.trim(),
+                valor: Number(formDespesa.valor),
                 data: formDespesa.data || hoje,
                 data_vencimento: formDespesa.data_vencimento,
                 categoria: formDespesa.categoria,
                 observacoes: formDespesa.observacoes,
             };
             if (editId) {
-                await apiClient.updateDespesa(editId, data);
+                const res = await apiClient.updateDespesa(editId, data);
+                if (res.error) {
+                    toast.error(res.error);
+                    return;
+                }
+                if (!hasPersistedEntity(res.data)) {
+                    toast.error('Servidor nao confirmou a atualizacao da despesa.');
+                    return;
+                }
                 toast.success('Despesa atualizada');
             } else {
-                await apiClient.createDespesa(data);
+                const res = await apiClient.createDespesa(data);
+                if (res.error) {
+                    toast.error(res.error);
+                    return;
+                }
+                if (!hasPersistedEntity(res.data)) {
+                    toast.error('Servidor nao confirmou a criacao da despesa.');
+                    return;
+                }
                 toast.success('Despesa criada');
             }
             fecharModal();
-            carregar();
-        } catch {
-            toast.error('Erro ao salvar despesa');
+            await carregar();
+        } catch (err) {
+            toast.error(getErrorMessage(err, 'Erro ao salvar despesa'));
+        } finally {
+            setSaving(false);
         }
     };
 
     const salvarPagamento = async () => {
+        if (!validarPagamento()) return;
+        setSaving(true);
         try {
             if (editId) {
-                await apiClient.updatePagamento(editId, {
-                    valor_total: parseFloat(formPagamento.valor_total),
-                    valor_pago: parseFloat(formPagamento.valor_pago || '0'),
+                const res = await apiClient.updatePagamento(editId, {
+                    valor_total: Number(formPagamento.valor_total),
+                    valor_pago: formPagamento.valor_pago === '' ? 0 : Number(formPagamento.valor_pago),
                     data_pagamento: formPagamento.data_pagamento,
                     metodo_pagamento: formPagamento.metodo,
                     observacoes: formPagamento.observacoes,
                 });
+                if (res.error) {
+                    toast.error(res.error);
+                    return;
+                }
+                if (!hasPersistedEntity(res.data)) {
+                    toast.error('Servidor nao confirmou a atualizacao do pagamento.');
+                    return;
+                }
                 toast.success('Pagamento atualizado');
             } else {
-                await apiClient.createPagamento({
-                    lote_id: parseInt(formPagamento.lote_id),
-                    valor_total: parseFloat(formPagamento.valor_total),
+                const res = await apiClient.createPagamento({
+                    lote_id: Number.parseInt(formPagamento.lote_id, 10),
+                    valor_total: Number(formPagamento.valor_total),
+                    valor_pago: formPagamento.valor_pago === '' ? 0 : Number(formPagamento.valor_pago),
                     data_vencimento: formPagamento.data_vencimento,
                     metodo_pagamento: formPagamento.metodo,
                     observacoes: formPagamento.observacoes,
                 });
+                if (res.error) {
+                    toast.error(res.error);
+                    return;
+                }
+                if (!hasPersistedEntity(res.data)) {
+                    toast.error('Servidor nao confirmou o registro do pagamento.');
+                    return;
+                }
                 toast.success('Pagamento registrado');
             }
             fecharModal();
-            carregar();
-        } catch {
-            toast.error('Erro ao salvar pagamento');
+            await carregar();
+        } catch (err) {
+            toast.error(getErrorMessage(err, 'Erro ao salvar pagamento'));
+        } finally {
+            setSaving(false);
         }
     };
 
     const excluir = async (tipo: Tab, id: number) => {
         if (!confirm('Deseja realmente excluir este registro?')) return;
         try {
-            if (tipo === 'despesas') await apiClient.deleteDespesa(id);
-            if (tipo === 'orcamentos') await apiClient.deleteOrcamento(id);
-            if (tipo === 'pagamentos') await apiClient.deletePagamento(id);
+            if (tipo === 'despesas') {
+                const res = await apiClient.deleteDespesa(id);
+                if (res.error) throw new Error(res.error);
+                if (!hasOkFlag(res.data)) throw new Error('Servidor nao confirmou a exclusao da despesa.');
+            }
+            if (tipo === 'orcamentos') {
+                const res = await apiClient.deleteOrcamento(id);
+                if (res.error) throw new Error(res.error);
+                if (!hasOkFlag(res.data)) throw new Error('Servidor nao confirmou a exclusao do orcamento.');
+            }
+            if (tipo === 'pagamentos') {
+                const res = await apiClient.deletePagamento(id);
+                if (res.error) throw new Error(res.error);
+                if (!hasOkFlag(res.data)) throw new Error('Servidor nao confirmou a exclusao do pagamento.');
+            }
             toast.success('Registro excluido');
-            carregar();
-        } catch {
-            toast.error('Erro ao excluir');
+            await carregar();
+        } catch (err) {
+            toast.error(getErrorMessage(err, 'Erro ao excluir'));
         }
     };
 
@@ -378,6 +545,7 @@ export default function FinanceiroPanel() {
             </div>
 
             {error && <div className="panel-error mb-4">{error}</div>}
+            {loadErrors[tab] && <div className="panel-error mb-4">{loadErrors[tab]}</div>}
 
             {/* Records List */}
             <div className="space-y-3" style={{ padding: '0 12px' }}>
@@ -553,9 +721,10 @@ export default function FinanceiroPanel() {
                                 <div className="space-y-4">
                                     <Input label="Nome do Cliente" placeholder="Ex: Joao da Silva" icon="user" value={formOrcamento.cliente_nome} onChange={e => setFormOrcamento({ ...formOrcamento, cliente_nome: e.target.value })} />
                                     <div className="grid grid-cols-2 gap-4">
-                                        <Input label="Valor (R$)" type="number" placeholder="0,00" icon="dollar" value={formOrcamento.valor} onChange={e => setFormOrcamento({ ...formOrcamento, valor: e.target.value })} />
+                                        <Input label="Valor (R$)" type="number" placeholder="0,00" icon="dollar" value={formOrcamento.valor} error={formErrors.orcamento_valor} onChange={e => { setFormOrcamento({ ...formOrcamento, valor: e.target.value }); setFormErrors(prev => ({ ...prev, orcamento_valor: '' })); }} />
                                         <Input label="Vencimento" type="date" value={formOrcamento.data_vencimento} onChange={e => setFormOrcamento({ ...formOrcamento, data_vencimento: e.target.value })} />
                                     </div>
+                                    {formErrors.orcamento_projeto && <p className="text-error text-sm -mt-2">{formErrors.orcamento_projeto}</p>}
                                     {editId && (
                                         <Select label="Status" options={[
                                             { value: 'PENDENTE', label: 'Pendente' },
@@ -566,16 +735,16 @@ export default function FinanceiroPanel() {
                                     <Textarea label="Observacoes" placeholder="Detalhes do orcamento..." value={formOrcamento.observacoes} onChange={e => setFormOrcamento({ ...formOrcamento, observacoes: e.target.value })} rows={3} />
                                     <div className="flex justify-end gap-2 pt-2">
                                         <Button variant="secondary" size="sm" onClick={fecharModal}>Cancelar</Button>
-                                        <Button variant="primary" size="sm" onClick={salvarOrcamento}>{editId ? 'Atualizar' : 'Criar Orcamento'}</Button>
+                                        <Button variant="primary" size="sm" isLoading={saving} disabled={saving} onClick={salvarOrcamento}>{editId ? 'Atualizar' : 'Criar Orcamento'}</Button>
                                     </div>
                                 </div>
                             )}
 
                             {tab === 'despesas' && (
                                 <div className="space-y-4">
-                                    <Input label="Descricao" placeholder="Ex: Marcos de concreto" icon="file" value={formDespesa.descricao} onChange={e => setFormDespesa({ ...formDespesa, descricao: e.target.value })} />
+                                    <Input label="Descricao" placeholder="Ex: Marcos de concreto" icon="file" value={formDespesa.descricao} error={formErrors.despesa_descricao} onChange={e => { setFormDespesa({ ...formDespesa, descricao: e.target.value }); setFormErrors(prev => ({ ...prev, despesa_descricao: '' })); }} />
                                     <div className="grid grid-cols-2 gap-4">
-                                        <Input label="Valor (R$)" type="number" placeholder="0,00" icon="dollar" value={formDespesa.valor} onChange={e => setFormDespesa({ ...formDespesa, valor: e.target.value })} />
+                                        <Input label="Valor (R$)" type="number" placeholder="0,00" icon="dollar" value={formDespesa.valor} error={formErrors.despesa_valor} onChange={e => { setFormDespesa({ ...formDespesa, valor: e.target.value }); setFormErrors(prev => ({ ...prev, despesa_valor: '' })); }} />
                                         <Select label="Categoria" options={[
                                             { value: 'SERVICO', label: 'Servico' },
                                             { value: 'MATERIAL', label: 'Material' },
@@ -588,20 +757,21 @@ export default function FinanceiroPanel() {
                                         <Input label="Data" type="date" value={formDespesa.data} onChange={e => setFormDespesa({ ...formDespesa, data: e.target.value })} />
                                         <Input label="Vencimento" type="date" value={formDespesa.data_vencimento} onChange={e => setFormDespesa({ ...formDespesa, data_vencimento: e.target.value })} />
                                     </div>
+                                    {formErrors.despesa_projeto && <p className="text-error text-sm -mt-2">{formErrors.despesa_projeto}</p>}
                                     <Textarea label="Observacoes" placeholder="NF, local de compra..." value={formDespesa.observacoes} onChange={e => setFormDespesa({ ...formDespesa, observacoes: e.target.value })} rows={2} />
                                     <div className="flex justify-end gap-2 pt-2">
                                         <Button variant="secondary" size="sm" onClick={fecharModal}>Cancelar</Button>
-                                        <Button variant="primary" size="sm" onClick={salvarDespesa}>{editId ? 'Atualizar' : 'Criar Despesa'}</Button>
+                                        <Button variant="primary" size="sm" isLoading={saving} disabled={saving} onClick={salvarDespesa}>{editId ? 'Atualizar' : 'Criar Despesa'}</Button>
                                     </div>
                                 </div>
                             )}
 
                             {tab === 'pagamentos' && (
                                 <div className="space-y-4">
-                                    <Input label="ID do Lote" icon="file" placeholder="Ex: 42" value={formPagamento.lote_id} onChange={e => setFormPagamento({ ...formPagamento, lote_id: e.target.value })} disabled={!!editId} />
+                                    <Input label="ID do Lote" icon="file" placeholder="Ex: 42" value={formPagamento.lote_id} error={formErrors.pagamento_lote_id} onChange={e => { setFormPagamento({ ...formPagamento, lote_id: e.target.value }); setFormErrors(prev => ({ ...prev, pagamento_lote_id: '' })); }} disabled={!!editId} />
                                     <div className="grid grid-cols-2 gap-4">
-                                        <Input label="Valor Total (R$)" type="number" placeholder="0,00" value={formPagamento.valor_total} onChange={e => setFormPagamento({ ...formPagamento, valor_total: e.target.value })} />
-                                        <Input label="Valor Pago (R$)" type="number" placeholder="0,00" value={formPagamento.valor_pago} onChange={e => setFormPagamento({ ...formPagamento, valor_pago: e.target.value })} />
+                                        <Input label="Valor Total (R$)" type="number" placeholder="0,00" value={formPagamento.valor_total} error={formErrors.pagamento_valor_total} onChange={e => { setFormPagamento({ ...formPagamento, valor_total: e.target.value }); setFormErrors(prev => ({ ...prev, pagamento_valor_total: '' })); }} />
+                                        <Input label="Valor Pago (R$)" type="number" placeholder="0,00" value={formPagamento.valor_pago} error={formErrors.pagamento_valor_pago} onChange={e => { setFormPagamento({ ...formPagamento, valor_pago: e.target.value }); setFormErrors(prev => ({ ...prev, pagamento_valor_pago: '' })); }} />
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <Input label="Vencimento" type="date" value={formPagamento.data_vencimento} onChange={e => setFormPagamento({ ...formPagamento, data_vencimento: e.target.value })} />
@@ -617,7 +787,7 @@ export default function FinanceiroPanel() {
                                     <Textarea label="Observacoes" placeholder="Comprovante, referencia..." value={formPagamento.observacoes} onChange={e => setFormPagamento({ ...formPagamento, observacoes: e.target.value })} rows={2} />
                                     <div className="flex justify-end gap-2 pt-2">
                                         <Button variant="secondary" size="sm" onClick={fecharModal}>Cancelar</Button>
-                                        <Button variant="primary" size="sm" onClick={salvarPagamento}>{editId ? 'Atualizar' : 'Registrar Pagamento'}</Button>
+                                        <Button variant="primary" size="sm" isLoading={saving} disabled={saving} onClick={salvarPagamento}>{editId ? 'Atualizar' : 'Registrar Pagamento'}</Button>
                                     </div>
                                 </div>
                             )}

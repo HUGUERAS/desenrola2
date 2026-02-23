@@ -303,41 +303,17 @@ export default function DesenharPanel() {
                 <>
                     <div className="panel-section">
                         <h4><Pencil size={14} /> Ferramentas de Desenho</h4>
-                        <div className="panel-tools-grid">
-                            <button
-                                className="panel-btn panel-tool-btn"
-                                onClick={() => {
-                                    setActiveTool(null);
-                                    setSketchTool('polygon');
-                                }}
-                                title="Desenhar poligono por vertices"
-                            >
-                                <Pentagon size={20} />
-                                Poligono
-                            </button>
-                            <button
-                                className="panel-btn panel-tool-btn"
-                                onClick={() => {
-                                    setActiveTool(null);
-                                    setSketchTool('rectangle');
-                                }}
-                                title="Desenhar retangulo"
-                            >
-                                <Square size={20} />
-                                Retangulo
-                            </button>
-                            <button
-                                className="panel-btn panel-tool-btn"
-                                onClick={() => {
-                                    setActiveTool(null);
-                                    setSketchTool('circle');
-                                }}
-                                title="Desenhar circulo"
-                            >
-                                <Circle size={20} />
-                                Circulo
-                            </button>
-                        </div>
+                        <button
+                            className="panel-btn panel-btn--primary panel-btn--full"
+                            onClick={() => {
+                                setActiveTool(null);
+                                setSketchTool('polygon');
+                            }}
+                            title="Desenhar poligono por vertices"
+                        >
+                            <Pentagon size={16} />
+                            <span style={{ marginLeft: 6 }}>Desenhar poligono</span>
+                        </button>
                         <div className="panel-info">
                             {loteAtual
                                 ? 'Poligono por vertices e o principal. Clique no mapa para inserir vertices e duplo-clique para fechar.'
@@ -345,26 +321,29 @@ export default function DesenharPanel() {
                         </div>
                     </div>
 
-                    {geoInfo && (
-                        <div className="panel-section panel-draw-confirm">
-                            <div className="panel-draw-confirm-head">
-                                <CheckCircle size={20} />
-                                <span className="panel-draw-confirm-title">Area detectada no mapa</span>
-                            </div>
-                            <button
-                                className="panel-btn panel-btn--primary panel-btn--full panel-draw-save-btn"
-                                onClick={handleSave}
-                                disabled={saving}
-                            >
-                                {saving ? 'SALVANDO...' : 'CONFIRMAR E SALVAR AREA'}
-                            </button>
-                            {!loteAtual && (
-                                <p className="panel-draw-note">
-                                    Isso criara seu projeto e salvara as coordenadas.
-                                </p>
-                            )}
+                    <div className="panel-section panel-draw-confirm">
+                        <div className="panel-draw-confirm-head">
+                            <CheckCircle size={20} />
+                            <span className="panel-draw-confirm-title">Area detectada no mapa</span>
                         </div>
-                    )}
+                        <button
+                            className="panel-btn panel-btn--primary panel-btn--full panel-draw-save-btn"
+                            onClick={handleSave}
+                            disabled={saving || !pendingGeojson}
+                        >
+                            {saving ? 'SALVANDO...' : pendingGeojson ? 'CONFIRMAR E SALVAR AREA' : 'DESENHE PARA SALVAR'}
+                        </button>
+                        {!loteAtual && (
+                            <p className="panel-draw-note">
+                                Isso criara seu projeto e salvara as coordenadas.
+                            </p>
+                        )}
+                        {!pendingGeojson && (
+                            <p className="panel-draw-note" style={{ marginTop: 6 }}>
+                                Desenhe ou importe um poligono para habilitar o salvamento.
+                            </p>
+                        )}
+                    </div>
 
                     <div className="panel-section">
                         <h4><FileUp size={14} /> Importar Arquivo</h4>

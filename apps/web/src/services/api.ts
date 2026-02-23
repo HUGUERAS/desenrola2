@@ -108,10 +108,6 @@ class ApiClient {
         options: RequestOptions = {}
     ): Promise<ApiResponse<T>> {
         const url = `${this.baseUrl}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
-        const headers: Record<string, string> = {
-            'Content-Type': 'application/json',
-        };
-        if (this.token) headers['Authorization'] = `Bearer ${this.token}`;
 
         const { timeoutMs = DEFAULT_TIMEOUT_MS, retry, ...fetchOptions } = options;
         const method = (fetchOptions.method || 'GET').toUpperCase();
@@ -119,6 +115,15 @@ class ApiClient {
         const shouldRetry = isIdempotent(method);
         let attempt = 0;
         let attemptedReauth = false;
+        const bodyPreview = (() => {
+            const body = fetchOptions.body;
+            if (!body) return undefined;
+            if (body instanceof FormData) return '[FormData]';
+            if (typeof body === 'string') {
+                return body.length > 300 ? `${body.slice(0, 300)}...` : body;
+            }
+            return '[Body not serializable]';
+        })();
 
         try {
             while (true) {
@@ -128,6 +133,11 @@ class ApiClient {
                 }
                 if (typeof navigator !== 'undefined' && !navigator.onLine) {
                     return { error: 'Sem conexão com a internet' };
+                }
+                const headers = new Headers(fetchOptions.headers as HeadersInit);
+                if (this.token) headers.set('Authorization', `Bearer ${this.token}`);
+                if (!(fetchOptions.body instanceof FormData) && !headers.has('Content-Type')) {
+                    headers.set('Content-Type', 'application/json');
                 }
 
                 const controller = new AbortController();
@@ -165,6 +175,14 @@ class ApiClient {
                             (payload as Record<string, unknown>)?.message as string ||
                             (payload as Record<string, unknown>)?.error as string ||
                             'Erro na requisição';
+                        console.error('[API] HTTP error', {
+                            endpoint,
+                            method,
+                            status: response.status,
+                            error: errorMessage,
+                            body: bodyPreview,
+                            payload,
+                        });
 
                         if (
                             shouldRetry &&
@@ -191,6 +209,13 @@ class ApiClient {
                         : error instanceof Error
                             ? error.message
                             : 'Erro de conexão';
+                    console.error('[API] Network error', {
+                        endpoint,
+                        method,
+                        error: errorMessage,
+                        body: bodyPreview,
+                        attempt,
+                    });
 
                     if (shouldRetry && attempt <= retryConfig.retries && !isTimeout) {
                         const delay = Math.min(
@@ -207,6 +232,12 @@ class ApiClient {
                 }
             }
         } catch (error) {
+            console.error('[API] Unexpected request error', {
+                endpoint,
+                method,
+                body: bodyPreview,
+                error: error instanceof Error ? error.message : error,
+            });
             return {
                 error: error instanceof Error ? error.message : 'Erro de conexão',
             };
@@ -289,6 +320,41 @@ class ApiClient {
     async getLotePorToken(token: string) {
         return this.request<unknown>(
             `/api/acesso-lote?token=${encodeURIComponent(token)}`
+        );
+    }
+
+    async salvarAcessoLote(
+        token: string,
+        data: {
+            nome_cliente?: string;
+            cpf_cnpj_cliente?: string;
+            telefone_cliente?: string;
+            email_cliente?: string;
+            rg_cliente?: string;
+            estado_civil_cliente?: string;
+            municipio?: string;
+            uf?: string;
+            comarca?: string;
+            codigo_sigef?: string;
+            denominacao_imovel?: string;
+            matricula_imovel?: string;
+            geojson?: Record<string, unknown>;
+            vizinhos?: Array<{
+                segmento_index: number;
+                confrontante_tipo: 'FAZENDA' | 'ESTRADA' | 'CORREGO' | 'AREA_PUBLICA' | 'OUTRO';
+                nome: string;
+                cpf: string;
+                imovel: string;
+                matricula: string;
+            }>;
+        }
+    ) {
+        return this.request<{ ok: boolean; lote_id: number }>(
+            `/api/acesso-lote/salvar?token=${encodeURIComponent(token)}`,
+            {
+                method: 'POST',
+                body: JSON.stringify(data),
+            }
         );
     }
 
@@ -556,13 +622,15 @@ class ApiClient {
 
     async getDocumentos(loteId: number) {
         return this.request<Array<{
-            id: number;
+            id: number | string;
             lote_id?: number | string;
             /** @deprecated compatibilidade com schema legado */
             property_id?: number | string;
             tipo: string;
-            formato: string;
+            formato?: string;
             arquivo_url: string;
+            conteudo?: string;
+            nome_arquivo?: string;
             created_at: string;
         }>>(`/api/documents/${loteId}`);
     }
@@ -577,6 +645,23 @@ class ApiClient {
         }>(`/api/documents/gerar/${loteId}`, {
             method: 'POST',
             body: JSON.stringify({ lote_id: loteId, tipo }),
+        });
+    }
+
+    async uploadDocumento(loteId: number, tipo: string, arquivo: File) {
+        const formData = new FormData();
+        formData.append('tipo', tipo);
+        formData.append('arquivo', arquivo);
+
+        return this.request<{
+            id: number | string;
+            tipo: string;
+            arquivo_url: string;
+            created_at: string;
+            nome_arquivo?: string;
+        }>(`/api/documents/upload/${loteId}`, {
+            method: 'POST',
+            body: formData,
         });
     }
 }

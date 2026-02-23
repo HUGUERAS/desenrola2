@@ -10,6 +10,11 @@ from db import supabase
 
 router = APIRouter(prefix="/api", tags=["Financeiro"])
 
+def _first_or_500(res, entidade: str):
+    if res.data:
+        return res.data[0]
+    raise HTTPException(status_code=500, detail=f"Falha ao persistir {entidade}")
+
 # ==================== ORCAMENTOS ====================
 
 @router.get("/orcamentos")
@@ -45,7 +50,7 @@ async def criar_orcamento(data: OrcamentoCreate, perfil: dict = Depends(require_
     if data.cliente_nome is not None:
         payload["cliente_nome"] = data.cliente_nome
     res = supabase.table("orcamentos").insert(payload).execute()
-    return res.data[0] if res.data else {"ok": True}
+    return _first_or_500(res, "orcamento")
 
 
 @router.put("/orcamentos/{orcamento_id}")
@@ -93,7 +98,7 @@ async def criar_despesa(data: DespesaCreate, perfil: dict = Depends(require_topo
         "observacoes": data.observacoes,
     }
     res = supabase.table("despesas").insert(payload).execute()
-    return res.data[0] if res.data else {"ok": True}
+    return _first_or_500(res, "despesa")
 
 
 @router.put("/despesas/{despesa_id}")
@@ -149,7 +154,7 @@ async def criar_pagamento(data: PagamentoCreate, perfil: dict = Depends(require_
     if data.observacoes is not None:
         payload["observacoes"] = data.observacoes
     res = supabase.table("pagamentos").insert(payload).execute()
-    return res.data[0] if res.data else {"ok": True}
+    return _first_or_500(res, "pagamento")
 
 
 @router.put("/pagamentos/{pagamento_id}")

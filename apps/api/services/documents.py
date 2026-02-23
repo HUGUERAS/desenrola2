@@ -47,6 +47,17 @@ def save_document_record(lote_id: str, tipo: str, url: str, conteudo: str = None
     return response.data[0] if response.data else {"ok": True}
 
 
+def get_documento_by_id(doc_id: str) -> dict | None:
+    response = supabase.table("documentos").select("*").eq("id", doc_id).execute()
+    if not response.data:
+        return None
+    return response.data[0]
+
+
+def update_document_url(doc_id: str, url: str):
+    supabase.table("documentos").update({"arquivo_url": url}).eq("id", doc_id).execute()
+
+
 def list_documentos_by_lote(lote_id: str) -> list[dict]:
     """Lista documentos por lote com fallback para coluna legacy."""
     try:
