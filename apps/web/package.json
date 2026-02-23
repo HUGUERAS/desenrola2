@@ -16,6 +16,7 @@
     },
     "dependencies": {
         "@mapbox/mapbox-gl-draw": "^1.5.1",
+        "@mapbox/togeojson": "^0.16.2",
         "@supabase/supabase-js": "^2.45.4",
         "@turf/turf": "^7.3.4",
         "clsx": "^2.1.1",

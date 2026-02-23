@@ -1,67 +1,15 @@
 /**
- * toolsApi.ts — API client for geo tools backend endpoints
- * Import/Export e SIGEF
+ * toolsApi.ts — Implementações client-side (sem backend)
+ * SIGEF, Import/Export — tudo no browser via turf + @mapbox/togeojson
  */
 
-const API_BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
+import { kml as kmlToGeoJSON } from '@mapbox/togeojson';
+import * as turf from '@turf/turf';
 
-async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = localStorage.getItem('auth_token') || '';
-  const response = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(options.headers as Record<string, string> | undefined),
-    },
-  });
+// ── Helpers ────────────────────────────────────────────────────────────────────
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: response.statusText }));
-    throw new Error(error.detail || error.message || `API Error ${response.status}`);
-  }
-
-  return response.json();
-}
-
-async function apiUpload<T>(path: string, file: File): Promise<T> {
-  const token = localStorage.getItem('auth_token') || '';
-  const formData = new FormData();
-  formData.append('file', file);
-
-  const response = await fetch(`${API_BASE}${path}`, {
-    method: 'POST',
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: formData,
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: response.statusText }));
-    throw new Error(error.detail || error.message || `API Error ${response.status}`);
-  }
-
-  return response.json();
-}
-
-async function apiDownload(path: string, body: object, filename: string): Promise<void> {
-  const token = localStorage.getItem('auth_token') || '';
-  const response = await fetch(`${API_BASE}${path}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify(body),
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: response.statusText }));
-    throw new Error(error.detail || error.message || `API Error ${response.status}`);
-  }
-
-  const blob = await response.blob();
+function downloadBlob(content: string, filename: string, mime = 'application/octet-stream') {
+  const blob = new Blob([content], { type: mime });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -70,7 +18,7 @@ async function apiDownload(path: string, body: object, filename: string): Promis
   URL.revokeObjectURL(url);
 }
 
-// ── SIGEF ──
+// ── SIGEF ──────────────────────────────────────────────────────────────────────
 
 export interface SIGEFValidationResult {
   valido: boolean;
@@ -78,38 +26,67 @@ export interface SIGEFValidationResult {
   avisos: string[];
 }
 
-export async function validateSIGEF(
-  geomWkt: string,
+export function validateSIGEF(
+  _geomWkt: string,
   areaHectares: number,
   verticesSirgas: number[][],
-): Promise<SIGEFValidationResult> {
-  return apiRequest('/api/sigef/validar', {
-    method: 'POST',
-    body: JSON.stringify({ geom_wkt: geomWkt, area_hectares: areaHectares, vertices_sirgas: verticesSirgas }),
-  });
+): SIGEFValidationResult {
+  const erros: string[] = [];
+  const avisos: string[] = [];
+
+  if (!verticesSirgas || verticesSirgas.length < 3) {
+    erros.push('Mínimo de 3 vértices necessários.');
+  }
+
+  const first = verticesSirgas[0];
+  const last = verticesSirgas[verticesSirgas.length - 1];
+  if (first && last && (first[0] !== last[0] || first[1] !== last[1])) {
+    erros.push('Polígono não está fechado (primeiro ≠ último vértice).');
+  }
+
+  if (areaHectares <= 0) {
+    erros.push('Área deve ser maior que zero.');
+  }
+
+  if (verticesSirgas.length > 0) {
+    const coords = verticesSirgas.map(([x, y]) => [x, y] as [number, number]);
+    if (coords[0][0] !== coords[coords.length - 1][0] || coords[0][1] !== coords[coords.length - 1][1]) {
+      coords.push(coords[0]);
+    }
+    const poly = turf.polygon([coords]);
+    const areaCalculada = turf.area(poly) / 10000; // m² → ha
+    const diff = Math.abs(areaCalculada - areaHectares) / areaHectares;
+    if (diff > 0.05) {
+      avisos.push(`Área declarada (${areaHectares.toFixed(4)} ha) difere da calculada (${areaCalculada.toFixed(4)} ha) em ${(diff * 100).toFixed(1)}%.`);
+    }
+  }
+
+  return { valido: erros.length === 0, erros, avisos };
 }
 
-export async function generateMemorial(
+export function generateMemorial(
   vertices: number[][],
   areaM2: number,
   confrontantes?: Record<string, string>,
-): Promise<{ memorial: string; tabela: string }> {
-  return apiRequest('/api/sigef/memorial', {
-    method: 'POST',
-    body: JSON.stringify({ vertices, area_m2: areaM2, confrontantes }),
-  });
+): { memorial: string; tabela: string } {
+  const areaHa = (areaM2 / 10000).toFixed(4);
+  const confrontStr = confrontantes
+    ? Object.entries(confrontantes).map(([lado, nome]) => `  - ${lado}: ${nome}`).join('\n')
+    : '  (não informados)';
+
+  const memorial = `MEMORIAL DESCRITIVO\n${'='.repeat(40)}\n\nÁrea total: ${areaM2.toFixed(2)} m² (${areaHa} ha)\n\nCONFRONTANTES:\n${confrontStr}\n\nVÉRTICES:\n${vertices.map((v, i) => `  V${i + 1}: E=${v[0].toFixed(3)} N=${v[1].toFixed(3)}`).join('\n')}\n`;
+
+  const tabela = ['Vértice,E (m),N (m)', ...vertices.map((v, i) => `V${i + 1},${v[0].toFixed(3)},${v[1].toFixed(3)}`)].join('\n');
+
+  return { memorial, tabela };
 }
 
-export async function getVerticesSIRGAS(
-  vertices: number[][],
-): Promise<{ tabela: string }> {
-  return apiRequest('/api/sigef/vertices-sirgas', {
-    method: 'POST',
-    body: JSON.stringify({ vertices }),
-  });
+export function getVerticesSIRGAS(vertices: number[][]): { tabela: string } {
+  const linhas = ['Vértice,Longitude,Latitude', ...vertices.map((v, i) => `V${i + 1},${v[0].toFixed(8)},${v[1].toFixed(8)}`)];
+  return { tabela: linhas.join('\n') };
 }
 
-// ── Import ──
+// ── Import ─────────────────────────────────────────────────────────────────────
 
 export interface GeoJSONFeatureCollection {
   type: 'FeatureCollection';
@@ -121,19 +98,38 @@ export interface GeoJSONFeatureCollection {
 }
 
 export async function importKML(file: File): Promise<GeoJSONFeatureCollection> {
-  return apiUpload('/api/import-export/import/kml', file);
+  const text = await file.text();
+  const dom = new DOMParser().parseFromString(text, 'text/xml');
+  return kmlToGeoJSON(dom) as GeoJSONFeatureCollection;
 }
 
 export async function importGeoJSON(file: File): Promise<GeoJSONFeatureCollection> {
-  return apiUpload('/api/import-export/import/geojson', file);
+  const text = await file.text();
+  const parsed = JSON.parse(text);
+  if (parsed.type !== 'FeatureCollection') {
+    if (parsed.type === 'Feature') return { type: 'FeatureCollection', features: [parsed] };
+    if (parsed.type && parsed.coordinates) return { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: parsed, properties: {} }] };
+  }
+  return parsed as GeoJSONFeatureCollection;
 }
 
-// ── Export ──
+// ── Export ─────────────────────────────────────────────────────────────────────
 
-export async function exportDXF(geometries: object[]): Promise<void> {
-  return apiDownload('/api/import-export/export/dxf', { geometries }, 'export.dxf');
+export function exportGeoJSON(geometry: object): void {
+  downloadBlob(JSON.stringify(geometry, null, 2), 'export.geojson', 'application/geo+json');
 }
 
-export async function exportGeoJSON(geometry: object): Promise<void> {
-  return apiDownload('/api/import-export/export/geojson', { geometry }, 'export.geojson');
+export function exportDXF(geometries: object[]): void {
+  // Gera DXF mínimo com LWPOLYLINE para cada geometria GeoJSON
+  const entities: string[] = [];
+  for (const geo of geometries) {
+    const g = geo as { type?: string; coordinates?: number[][][] };
+    const rings = g?.type === 'Polygon' ? g.coordinates : g?.type === 'MultiPolygon' ? (geo as { coordinates: number[][][][] }).coordinates.flat() : [];
+    for (const ring of rings ?? []) {
+      const pts = ring.map(([x, y]) => ` 10\n${x.toFixed(6)}\n 20\n${y.toFixed(6)}\n 30\n0.0`).join('\n');
+      entities.push(` 0\nLWPOLYLINE\n 8\n0\n 70\n1\n 90\n${ring.length}\n${pts}`);
+    }
+  }
+  const dxf = `  0\nSECTION\n  2\nENTITIES\n${entities.join('\n')}\n  0\nENDSEC\n  0\nEOF\n`;
+  downloadBlob(dxf, 'export.dxf');
 }
