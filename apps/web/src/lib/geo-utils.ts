@@ -37,16 +37,28 @@ export function wktToRings(wkt: string): number[][][] | null {
 }
 
 /**
- * Extract rings from GeoJSON geometry
+ * Extract rings from GeoJSON geometry (supports Polygon, MultiPolygon, Feature, FeatureCollection)
  */
 export function geoJSONToRings(geojson: Record<string, any>): number[][][] | null {
   if (!geojson) return null;
 
   try {
-    const geom = geojson.geometry || geojson;
-    const type = geom.type;
-    const coords = geom.coordinates;
+    const type = geojson.type;
 
+    // FeatureCollection — usa o primeiro feature
+    if (type === 'FeatureCollection') {
+      const features = geojson.features as Array<Record<string, any>>;
+      if (!features?.length) return null;
+      return geoJSONToRings(features[0]);
+    }
+
+    // Feature — delega para a geometry
+    if (type === 'Feature') {
+      if (!geojson.geometry) return null;
+      return geoJSONToRings(geojson.geometry);
+    }
+
+    const coords = geojson.coordinates;
     if (!coords) return null;
 
     if (type === 'Polygon') {
@@ -54,12 +66,7 @@ export function geoJSONToRings(geojson: Record<string, any>): number[][][] | nul
     }
 
     if (type === 'MultiPolygon') {
-      // Return first polygon's rings
       return coords[0] as number[][][];
-    }
-
-    if (type === 'Feature') {
-      return geoJSONToRings(geom);
     }
 
     return null;
