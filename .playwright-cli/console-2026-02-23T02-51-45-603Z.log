@@ -1,0 +1,19 @@
+Total messages: 22 (Errors: 16, Warnings: 2)
+Returning 16 messages for level "error"
+
+[ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://127.0.0.1:5173/favicon.ico:0
+[ERROR] Failed to load resource: the server responded with a status of 400 () @ https://xntxtdximacsdnldouxa.supabase.co/auth/v1/signup:0
+[ERROR] Access to fetch at 'http://localhost:8010/api/pagamentos?projeto_id=4' from origin 'http://127.0.0.1:5173' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:5173/app:0
+[ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:8010/api/pagamentos?projeto_id=4:0
+[ERROR] Access to fetch at 'http://localhost:8010/api/pagamentos?projeto_id=4' from origin 'http://127.0.0.1:5173' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:5173/app:0
+[ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:8010/api/pagamentos?projeto_id=4:0
+[ERROR] Access to fetch at 'http://localhost:8010/api/pagamentos?projeto_id=4' from origin 'http://127.0.0.1:5173' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:5173/app:0
+[ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:8010/api/pagamentos?projeto_id=4:0
+[ERROR] Access to fetch at 'http://localhost:8010/api/orcamentos' from origin 'http://127.0.0.1:5173' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:5173/app:0
+[ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:8010/api/orcamentos:0
+[ERROR] Access to fetch at 'http://localhost:8010/api/pagamentos?projeto_id=4' from origin 'http://127.0.0.1:5173' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:5173/app:0
+[ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:8010/api/pagamentos?projeto_id=4:0
+[ERROR] Access to fetch at 'http://localhost:8010/api/pagamentos?projeto_id=4' from origin 'http://127.0.0.1:5173' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:5173/app:0
+[ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:8010/api/pagamentos?projeto_id=4:0
+[ERROR] Access to fetch at 'http://localhost:8010/api/pagamentos?projeto_id=4' from origin 'http://127.0.0.1:5173' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:5173/app:0
+[ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:8010/api/pagamentos?projeto_id=4:0

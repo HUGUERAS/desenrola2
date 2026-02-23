@@ -1,0 +1,14 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]: D
+      - generic [ref=e6]: Desenrola
+    - generic [ref=e144]:
+      - generic [ref=e145]: ✅
+      - heading "Dados enviados!" [level=2] [ref=e146]
+      - paragraph [ref=e147]:
+        - text: Obrigado,
+        - strong [ref=e148]: Cliente Teste
+        - text: .
+      - paragraph [ref=e149]: Seus dados foram recebidos pelo topógrafo. Você será notificado quando o documento estiver pronto.
+  - region "Notifications alt+T"

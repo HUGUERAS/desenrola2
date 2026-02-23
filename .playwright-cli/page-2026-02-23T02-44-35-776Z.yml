@@ -1,0 +1,119 @@
+- generic [ref=e2]:
+  - generic [ref=e45]:
+    - banner [ref=e46]:
+      - generic [ref=e47]:
+        - button "Fechar sidebar" [ref=e48] [cursor=pointer]:
+          - img [ref=e49]
+        - generic [ref=e52]:
+          - img [ref=e53]
+          - generic [ref=e55]: Desenrola
+        - generic [ref=e56]: 📐 Topógrafo
+      - button "Sair" [ref=e58] [cursor=pointer]:
+        - img [ref=e59]
+        - generic [ref=e62]: Sair
+    - generic [ref=e63]:
+      - complementary [ref=e64]:
+        - navigation [ref=e65]:
+          - button "Projetos" [ref=e317] [cursor=pointer]:
+            - img [ref=e318]
+            - generic [ref=e320]: Projetos
+          - generic [ref=e72]:
+            - generic [ref=e321]: FERRAMENTAS
+            - button "Editor (Desenho/CAD)" [ref=e322] [cursor=pointer]:
+              - img [ref=e74]
+              - generic [ref=e79]: Editor (Desenho/CAD)
+          - button "Validar Desenho" [ref=e324] [cursor=pointer]:
+            - img [ref=e325]
+            - generic [ref=e328]: Validar Desenho
+          - button "Identificar Vizinhos" [ref=e330] [cursor=pointer]:
+            - img [ref=e331]
+            - generic [ref=e334]: Identificar Vizinhos
+          - button "Gerar Peças" [ref=e336] [cursor=pointer]:
+            - img [ref=e337]
+            - generic [ref=e340]: Gerar Peças
+          - button "Documentos" [ref=e89] [cursor=pointer]:
+            - img [ref=e90]
+            - generic [ref=e93]: Documentos
+          - generic [ref=e341]:
+            - generic [ref=e342]: GESTÃO
+            - button "Financeiro" [ref=e343] [cursor=pointer]:
+              - img [ref=e344]
+              - generic [ref=e346]: Financeiro
+        - generic [ref=e347]:
+          - generic [ref=e348]:
+            - heading "📋 Projetos" [level=3] [ref=e349]
+            - button "Novo" [ref=e350] [cursor=pointer]:
+              - img [ref=e351]
+              - text: Novo
+          - generic [ref=e352]:
+            - button "Pendentes (3)" [ref=e353] [cursor=pointer]
+            - button "Em Andamento (0)" [ref=e354] [cursor=pointer]
+            - button "Finalizados (0)" [ref=e355] [cursor=pointer]
+            - button "Todos (3)" [ref=e356] [cursor=pointer]
+          - generic [ref=e357]:
+            - generic [ref=e358]:
+              - img [ref=e359]
+              - textbox "Buscar por nome, descrição ou tipo" [ref=e362]
+            - combobox [ref=e363]:
+              - 'option "Ordenar: prioridade de status" [selected]'
+              - 'option "Ordenar: nome"'
+            - combobox [ref=e364]:
+              - 'option "Tipo: todos" [selected]'
+              - 'option "Tipo: individual"'
+              - 'option "Tipo: loteamento"'
+          - generic [ref=e365]:
+            - generic [ref=e366] [cursor=pointer]:
+              - generic [ref=e367]:
+                - generic [ref=e368]: d
+                - generic [ref=e369]: Rascunho
+              - paragraph [ref=e370]: d
+              - generic [ref=e371]:
+                - generic [ref=e372]: LOTEAMENTO
+                - generic [ref=e373]:
+                  - button [ref=e374]:
+                    - img [ref=e375]
+                  - button [ref=e378]:
+                    - img [ref=e379]
+            - generic [ref=e382] [cursor=pointer]:
+              - generic [ref=e383]:
+                - generic [ref=e384]: Meu Primeiro Projeto
+                - generic [ref=e385]: Rascunho
+              - paragraph [ref=e386]: Projeto criado automaticamente ao desenhar
+              - generic [ref=e387]:
+                - generic [ref=e388]: INDIVIDUAL
+                - generic [ref=e389]:
+                  - button [ref=e390]:
+                    - img [ref=e391]
+                  - button [ref=e394]:
+                    - img [ref=e395]
+            - generic [ref=e398] [cursor=pointer]:
+              - generic [ref=e399]:
+                - generic [ref=e400]: ssss
+                - generic [ref=e401]: Rascunho
+              - paragraph [ref=e402]: sss
+              - generic [ref=e403]:
+                - generic [ref=e404]: LOTEAMENTO
+                - generic [ref=e405]:
+                  - button [ref=e406]:
+                    - img [ref=e407]
+                  - button [ref=e410]:
+                    - img [ref=e411]
+      - main [ref=e159]:
+        - generic [ref=e162]:
+          - application [ref=e163]
+          - generic [ref=e165]:
+            - generic "Mais Zoom" [ref=e166] [cursor=pointer]:
+              - button "Mais Zoom" [ref=e168]:
+                - img [ref=e170]
+            - generic "Menos Zoom" [ref=e172] [cursor=pointer]:
+              - button "Menos Zoom" [ref=e174]:
+                - img [ref=e176]
+    - contentinfo [ref=e226]:
+      - generic [ref=e227]:
+        - generic [ref=e228]: SRID
+        - generic [ref=e229]: 4674 (SIRGAS 2000)
+      - generic [ref=e230]:
+        - generic [ref=e231]: Coords
+        - generic [ref=e232]: —, —
+      - generic [ref=e234]: Desenrola v1.0
+  - region "Notifications alt+T"

@@ -1,0 +1,38 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]: D
+      - generic [ref=e6]: Desenrola
+    - generic [ref=e7]:
+      - heading "Confirmar e enviar" [level=2] [ref=e113]
+      - paragraph [ref=e16]: Verifique as informações antes de enviar.
+      - generic [ref=e114]:
+        - generic [ref=e115]: 👤
+        - generic [ref=e116]:
+          - paragraph [ref=e117]: Proprietário
+          - paragraph [ref=e118]: Cliente Teste
+      - generic [ref=e119]:
+        - generic [ref=e120]: 📋
+        - generic [ref=e121]:
+          - paragraph [ref=e122]: CPF
+          - paragraph [ref=e123]: 123.456.789-00
+      - generic [ref=e124]:
+        - generic [ref=e125]: 🏘️
+        - generic [ref=e126]:
+          - paragraph [ref=e127]: Imóvel
+          - paragraph [ref=e128]: Fazenda Boa Vista
+      - generic [ref=e129]:
+        - generic [ref=e130]: 📍
+        - generic [ref=e131]:
+          - paragraph [ref=e132]: Município / UF
+          - paragraph [ref=e133]: Niquelandia / GO
+      - generic [ref=e134]:
+        - generic [ref=e135]: 🧭
+        - generic [ref=e136]:
+          - paragraph [ref=e137]: Vizinhos identificados
+          - paragraph [ref=e138]: 1 de 4
+      - generic [ref=e82]:
+        - button "← Voltar" [ref=e83] [cursor=pointer]
+        - button "Enviar dados" [ref=e139] [cursor=pointer]
+      - paragraph [ref=e143]: "{'message': 'new row for relation \"confrontacoes\" violates check constraint \"confrontacoes_direcao_check\"', 'code': '23514', 'hint': None, 'details': 'Failing row contains (4, 11, null, null, NORTE, LOTE, Vizinho Norte, 111.222.333-44, , 0, FAZENDA).'}"
+  - region "Notifications alt+T"

@@ -1,0 +1,257 @@
+- generic [ref=e2]:
+  - generic [ref=e17]:
+    - banner [ref=e18]:
+      - generic [ref=e19]:
+        - button "Fechar sidebar" [ref=e20] [cursor=pointer]:
+          - img [ref=e21]
+        - generic [ref=e24]:
+          - img [ref=e25]
+          - generic [ref=e27]: Desenrola
+        - generic [ref=e28]: 📐 Topógrafo
+      - generic [ref=e181]: 📋 Meu Primeiro Projeto
+      - button "Sair" [ref=e30] [cursor=pointer]:
+        - img [ref=e31]
+        - generic [ref=e34]: Sair
+    - generic [ref=e35]:
+      - complementary [ref=e36]:
+        - navigation [ref=e37]:
+          - button "Projetos" [ref=e39] [cursor=pointer]:
+            - img [ref=e40]
+            - generic [ref=e42]: Projetos
+          - generic [ref=e43]:
+            - generic [ref=e44]: FERRAMENTAS
+            - button "Editor (Desenho/CAD)" [ref=e45] [cursor=pointer]:
+              - img [ref=e46]
+              - generic [ref=e51]: Editor (Desenho/CAD)
+          - button "Validar Desenho" [ref=e53] [cursor=pointer]:
+            - img [ref=e54]
+            - generic [ref=e57]: Validar Desenho
+          - button "Identificar Vizinhos" [ref=e59] [cursor=pointer]:
+            - img [ref=e60]
+            - generic [ref=e63]: Identificar Vizinhos
+          - button "Gerar Peças" [ref=e65] [cursor=pointer]:
+            - img [ref=e66]
+            - generic [ref=e69]: Gerar Peças
+          - button "Documentos" [ref=e71] [cursor=pointer]:
+            - img [ref=e72]
+            - generic [ref=e75]: Documentos
+          - generic [ref=e76]:
+            - generic [ref=e77]: GESTÃO
+            - button "Financeiro" [ref=e78] [cursor=pointer]:
+              - img [ref=e79]
+              - generic [ref=e81]: Financeiro
+        - generic [ref=e182]:
+          - generic [ref=e183]:
+            - generic [ref=e184]:
+              - button "Projetos" [ref=e185] [cursor=pointer]:
+                - img [ref=e186]
+                - text: Projetos
+              - heading "📦 Lotes — Meu Primeiro Projeto" [level=3] [ref=e188]
+            - button "Novo" [ref=e189] [cursor=pointer]:
+              - img [ref=e190]
+              - text: Novo
+          - generic [ref=e191]:
+            - generic [ref=e192] [cursor=pointer]:
+              - generic [ref=e193]:
+                - generic [ref=e194]: huugohenrique@gmail.com
+                - generic [ref=e195]: PENDENTE
+              - paragraph [ref=e196]: huugohenrique@gmail.com
+              - generic [ref=e197]:
+                - generic [ref=e198]: "#8"
+                - generic [ref=e199]:
+                  - button "Copiar magic link" [ref=e200]:
+                    - img [ref=e201]
+                  - button "Ver dados do cliente" [ref=e204]:
+                    - img [ref=e205]
+                  - button "Abrir" [ref=e208]:
+                    - img [ref=e209]
+            - generic [ref=e213] [cursor=pointer]:
+              - generic [ref=e214]:
+                - generic [ref=e215]: huugohenrique@gmail.com
+                - generic [ref=e216]: DESENHO
+              - paragraph [ref=e217]: huugohenrique@gmail.com
+              - generic [ref=e218]:
+                - generic [ref=e219]: "#7"
+                - generic [ref=e220]:
+                  - button "Copiar magic link" [ref=e221]:
+                    - img [ref=e222]
+                  - button "Ver dados do cliente" [ref=e225]:
+                    - img [ref=e226]
+                  - button "Abrir" [ref=e229]:
+                    - img [ref=e230]
+            - generic [ref=e234] [cursor=pointer]:
+              - generic [ref=e235]:
+                - generic [ref=e236]: Cliente Teste
+                - generic [ref=e237]: DESENHO
+              - paragraph [ref=e238]: cliente@teste.com
+              - generic [ref=e239]:
+                - generic [ref=e240]: "#9"
+                - generic [ref=e241]:
+                  - button "Copiar magic link" [ref=e242]:
+                    - img [ref=e243]
+                  - button "Ver dados do cliente" [ref=e246]:
+                    - img [ref=e247]
+                  - button "Abrir" [ref=e250]:
+                    - img [ref=e251]
+            - generic [ref=e255] [cursor=pointer]:
+              - generic [ref=e256]:
+                - generic [ref=e257]: Cliente Teste
+                - generic [ref=e258]: DESENHO
+              - paragraph [ref=e259]: cliente@teste.com
+              - generic [ref=e260]:
+                - generic [ref=e261]: "#10"
+                - generic [ref=e262]:
+                  - button "Copiar magic link" [ref=e263]:
+                    - img [ref=e264]
+                  - button "Ver dados do cliente" [ref=e267]:
+                    - img [ref=e268]
+                  - button "Abrir" [ref=e271]:
+                    - img [ref=e272]
+            - generic [ref=e276] [cursor=pointer]:
+              - generic [ref=e277]:
+                - generic [ref=e278]: Cliente Teste
+                - generic [ref=e279]: PENDENTE
+              - paragraph [ref=e280]: cliente@teste.com
+              - generic [ref=e281]:
+                - generic [ref=e282]: "#13"
+                - generic [ref=e283]:
+                  - button "Copiar magic link" [ref=e284]:
+                    - img [ref=e285]
+                  - button "Ver dados do cliente" [ref=e288]:
+                    - img [ref=e289]
+                  - button "Abrir" [ref=e292]:
+                    - img [ref=e293]
+            - generic [ref=e297] [cursor=pointer]:
+              - generic [ref=e298]:
+                - generic [ref=e299]: Cliente Teste
+                - generic [ref=e300]: DESENHO
+              - paragraph [ref=e301]: cliente@teste.com
+              - generic [ref=e302]:
+                - generic [ref=e303]: "#12"
+                - generic [ref=e304]:
+                  - button "Copiar magic link" [ref=e305]:
+                    - img [ref=e306]
+                  - button "Ver dados do cliente" [ref=e309]:
+                    - img [ref=e310]
+                  - button "Abrir" [ref=e313]:
+                    - img [ref=e314]
+            - generic [ref=e318] [cursor=pointer]:
+              - generic [ref=e319]:
+                - generic [ref=e320]: Cliente Teste
+                - generic [ref=e321]: DESENHO
+              - paragraph [ref=e322]: cliente@teste.com
+              - generic [ref=e323]:
+                - generic [ref=e324]: "#14"
+                - generic [ref=e325]:
+                  - button "Copiar magic link" [ref=e326]:
+                    - img [ref=e327]
+                  - button "Ver dados do cliente" [ref=e330]:
+                    - img [ref=e331]
+                  - button "Abrir" [ref=e334]:
+                    - img [ref=e335]
+            - generic [ref=e339] [cursor=pointer]:
+              - generic [ref=e340]:
+                - generic [ref=e341]: huugohenrique@gmail.com
+                - generic [ref=e342]: PENDENTE
+              - paragraph [ref=e343]: huugohenrique@gmail.com
+              - generic [ref=e344]:
+                - generic [ref=e345]: "#15"
+                - generic [ref=e346]:
+                  - button "Copiar magic link" [ref=e347]:
+                    - img [ref=e348]
+                  - button "Ver dados do cliente" [ref=e351]:
+                    - img [ref=e352]
+                  - button "Abrir" [ref=e355]:
+                    - img [ref=e356]
+            - generic [ref=e360] [cursor=pointer]:
+              - generic [ref=e361]:
+                - generic [ref=e362]: huugohenrique@gmail.com
+                - generic [ref=e363]: DESENHO
+              - paragraph [ref=e364]: huugohenrique@gmail.com
+              - generic [ref=e365]:
+                - generic [ref=e366]: "#16"
+                - generic [ref=e367]:
+                  - button "Copiar magic link" [ref=e368]:
+                    - img [ref=e369]
+                  - button "Ver dados do cliente" [ref=e372]:
+                    - img [ref=e373]
+                  - button "Abrir" [ref=e376]:
+                    - img [ref=e377]
+            - generic [ref=e381] [cursor=pointer]:
+              - generic [ref=e382]:
+                - generic [ref=e383]: huugohenrique@gmail.com
+                - generic [ref=e384]: DESENHO
+              - paragraph [ref=e385]: huugohenrique@gmail.com
+              - generic [ref=e386]:
+                - generic [ref=e387]: "#17"
+                - generic [ref=e388]:
+                  - button "Copiar magic link" [ref=e389]:
+                    - img [ref=e390]
+                  - button "Ver dados do cliente" [ref=e393]:
+                    - img [ref=e394]
+                  - button "Abrir" [ref=e397]:
+                    - img [ref=e398]
+            - generic [ref=e402] [cursor=pointer]:
+              - generic [ref=e403]:
+                - generic [ref=e404]: huugohenrique@gmail.com
+                - generic [ref=e405]: DESENHO
+              - paragraph [ref=e406]: huugohenrique@gmail.com
+              - generic [ref=e407]:
+                - generic [ref=e408]: "#18"
+                - generic [ref=e409]:
+                  - button "Copiar magic link" [ref=e410]:
+                    - img [ref=e411]
+                  - button "Ver dados do cliente" [ref=e414]:
+                    - img [ref=e415]
+                  - button "Abrir" [ref=e418]:
+                    - img [ref=e419]
+            - generic [ref=e423] [cursor=pointer]:
+              - generic [ref=e424]:
+                - generic [ref=e425]: huugohenrique@gmail.com
+                - generic [ref=e426]: PENDENTE
+              - paragraph [ref=e427]: huugohenrique@gmail.com
+              - generic [ref=e428]:
+                - generic [ref=e429]: "#19"
+                - generic [ref=e430]:
+                  - button "Copiar magic link" [ref=e431]:
+                    - img [ref=e432]
+                  - button "Ver dados do cliente" [ref=e435]:
+                    - img [ref=e436]
+                  - button "Abrir" [ref=e439]:
+                    - img [ref=e440]
+            - generic [ref=e444] [cursor=pointer]:
+              - generic [ref=e445]:
+                - generic [ref=e446]: Cliente Teste
+                - generic [ref=e447]: DESENHO
+              - paragraph [ref=e448]: cliente@teste.com
+              - generic [ref=e449]:
+                - generic [ref=e450]: "#11"
+                - generic [ref=e451]:
+                  - button "Copiar magic link" [ref=e452]:
+                    - img [ref=e453]
+                  - button "Ver dados do cliente" [ref=e456]:
+                    - img [ref=e457]
+                  - button "Abrir" [ref=e460]:
+                    - img [ref=e461]
+        - generic [ref=e466]:
+          - img [ref=e467]
+          - generic [ref=e469]: Meu Primeiro Projeto
+      - main [ref=e86]:
+        - generic [ref=e89]:
+          - application [ref=e90]
+          - generic [ref=e167]:
+            - generic "Mais Zoom" [ref=e168] [cursor=pointer]:
+              - button "Mais Zoom" [ref=e170]:
+                - img [ref=e172]
+            - generic "Menos Zoom" [ref=e174] [cursor=pointer]:
+              - button "Menos Zoom" [ref=e176]:
+                - img [ref=e178]
+    - contentinfo [ref=e91]:
+      - generic [ref=e92]:
+        - generic [ref=e93]: SRID
+        - generic [ref=e94]: 4674 (SIRGAS 2000)
+      - generic [ref=e95]:
+        - generic [ref=e96]: Coords
+        - generic [ref=e97]: —, —
+      - generic [ref=e99]: Desenrola v1.0
+  - region "Notifications alt+T"

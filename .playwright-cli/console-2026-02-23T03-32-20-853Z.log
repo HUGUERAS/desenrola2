@@ -1,0 +1,13 @@
+[    5037ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:5173/favicon.ico:0
+[   98431ms] [ERROR] Access to fetch at 'http://localhost:8010/api/pagamentos?projeto_id=4' from origin 'http://localhost:5173' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://localhost:5173/app:0
+[   98431ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:8010/api/pagamentos?projeto_id=4:0
+[   98431ms] [ERROR] [API] Network error {endpoint: /api/pagamentos?projeto_id=4, method: GET, error: Failed to fetch, body: undefined, attempt: 1} @ http://localhost:5173/src/services/api.ts?t=1771817274632:146
+[  100169ms] [ERROR] Access to fetch at 'http://localhost:8010/api/pagamentos?projeto_id=4' from origin 'http://localhost:5173' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://localhost:5173/app:0
+[  100169ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:8010/api/pagamentos?projeto_id=4:0
+[  100169ms] [ERROR] [API] Network error {endpoint: /api/pagamentos?projeto_id=4, method: GET, error: Failed to fetch, body: undefined, attempt: 2} @ http://localhost:5173/src/services/api.ts?t=1771817274632:146
+[  102097ms] [ERROR] Access to fetch at 'http://localhost:8010/api/pagamentos?projeto_id=4' from origin 'http://localhost:5173' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://localhost:5173/app:0
+[  102097ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:8010/api/pagamentos?projeto_id=4:0
+[  102097ms] [ERROR] [API] Network error {endpoint: /api/pagamentos?projeto_id=4, method: GET, error: Failed to fetch, body: undefined, attempt: 3} @ http://localhost:5173/src/services/api.ts?t=1771817274632:146
+[  188420ms] [ERROR] Access to fetch at 'http://localhost:8010/api/orcamentos' from origin 'http://localhost:5173' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://localhost:5173/app:0
+[  188420ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:8010/api/orcamentos:0
+[  188421ms] [ERROR] [API] Network error {endpoint: /api/orcamentos, method: POST, error: Failed to fetch, body: {"projeto_id":4,"valor":1234,"observacoes":"","cliente_nome":"","data_vencimento":""}, attempt: 1} @ http://localhost:5173/src/services/api.ts?t=1771817274632:146

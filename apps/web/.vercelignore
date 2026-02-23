@@ -1,0 +1,10 @@
+node_modules
+dist
+.vite
+.playwright-cli
+test-results
+playwright-report
+coverage
+public/assets/components
+src/**/__tests__
+tests

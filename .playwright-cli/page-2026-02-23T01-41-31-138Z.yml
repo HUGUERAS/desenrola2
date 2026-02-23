@@ -1,0 +1,58 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]: D
+      - generic [ref=e6]: Desenrola
+    - generic [ref=e7]:
+      - heading "Seus vizinhos" [level=2] [ref=e60]
+      - paragraph [ref=e16]: Informe o vizinho de cada lado do seu imóvel.
+      - generic [ref=e61]:
+        - paragraph [ref=e62]: Importar limites do imóvel
+        - paragraph [ref=e63]: CSV · DXF · GeoJSON · KML
+        - generic [ref=e64] [cursor=pointer]: ↑ Selecionar arquivo
+      - generic [ref=e65]:
+        - generic [ref=e66] [cursor=pointer]:
+          - paragraph [ref=e68]: Norte
+          - generic [ref=e69]: +
+        - generic [ref=e70] [cursor=pointer]:
+          - paragraph [ref=e72]: Sul
+          - generic [ref=e73]: +
+        - generic [ref=e74] [cursor=pointer]:
+          - paragraph [ref=e76]: Leste
+          - generic [ref=e77]: +
+        - generic [ref=e78] [cursor=pointer]:
+          - paragraph [ref=e80]: Oeste
+          - generic [ref=e81]: +
+      - generic [ref=e82]:
+        - button "← Voltar" [ref=e83] [cursor=pointer]
+        - button "Próximo →" [ref=e84] [cursor=pointer]
+      - generic [ref=e87]:
+        - paragraph [ref=e89]: Lado 1 — Leste
+        - paragraph [ref=e90]: Quem é seu vizinho neste lado?
+        - text: Tipo de confrontante
+        - generic [ref=e91]:
+          - button "Fazenda / Sítio" [ref=e92] [cursor=pointer]
+          - button "Estrada / Rodovia" [ref=e93] [cursor=pointer]
+          - button "Córrego / Rio" [ref=e94] [cursor=pointer]
+          - button "Área Pública" [ref=e95] [cursor=pointer]
+          - button "Outro" [ref=e96] [cursor=pointer]
+        - generic [ref=e97]:
+          - generic [ref=e98]: Nome do vizinho*
+          - textbox "Nome do vizinho*" [ref=e99]:
+            - /placeholder: Nome completo
+        - generic [ref=e100]:
+          - generic [ref=e101]: CPF do vizinho
+          - textbox "CPF do vizinho" [ref=e102]:
+            - /placeholder: 000.000.000-00
+        - generic [ref=e103]:
+          - generic [ref=e104]: Nome do imóvel
+          - textbox "Nome do imóvel" [ref=e105]:
+            - /placeholder: "Ex: Fazenda São João"
+        - generic [ref=e106]:
+          - generic [ref=e107]: Matrícula
+          - textbox "Matrícula" [ref=e108]:
+            - /placeholder: Nº da matrícula
+        - generic [ref=e109]:
+          - button "Cancelar" [ref=e110] [cursor=pointer]
+          - button "Salvar" [ref=e111] [cursor=pointer]
+  - region "Notifications alt+T"

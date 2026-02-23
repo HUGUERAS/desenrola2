@@ -1,0 +1,5 @@
+INFO:     127.0.0.1:51780 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51067 - "OPTIONS /api/acesso-lote?token=d6ab2214-ff11-4b73-9638-5da11d808cbd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51067 - "GET /api/acesso-lote?token=d6ab2214-ff11-4b73-9638-5da11d808cbd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64978 - "OPTIONS /api/acesso-lote/salvar?token=d6ab2214-ff11-4b73-9638-5da11d808cbd HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64978 - "POST /api/acesso-lote/salvar?token=d6ab2214-ff11-4b73-9638-5da11d808cbd HTTP/1.1" 500 Internal Server Error

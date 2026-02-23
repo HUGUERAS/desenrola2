@@ -1,0 +1,16 @@
+- generic [ref=e2]:
+  - generic [ref=e29]:
+    - heading "Entrar" [level=2] [ref=e30]
+    - paragraph [ref=e31]: Acesse sua área de regularização
+    - generic [ref=e32]:
+      - generic [ref=e33]:
+        - generic [ref=e34]: Email
+        - textbox "seu@email.com" [ref=e35]
+      - generic [ref=e36]:
+        - generic [ref=e37]: Senha
+        - textbox "••••••••" [ref=e38]
+      - button "Entrar" [ref=e39] [cursor=pointer]
+    - paragraph [ref=e40]:
+      - text: Não tem conta?
+      - button "Criar Conta" [ref=e41] [cursor=pointer]
+  - region "Notifications alt+T"

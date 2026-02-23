@@ -1,15 +1,14 @@
 /**
  * GeometryUtils: Funcoes utilitarias gerais de geometria
- * Helpers para encontrar geometrias, renderizar resultados, gerenciar layers de ferramentas
+ * Usa MapLibre GL JS para renderizacao no lugar do ArcGIS.
  */
 
-import GraphicsLayer from '@arcgis/core/layers/GraphicsLayer';
-import Graphic from '@arcgis/core/Graphic';
-import SimpleFillSymbol from '@arcgis/core/symbols/SimpleFillSymbol';
-import SimpleLineSymbol from '@arcgis/core/symbols/SimpleLineSymbol';
-import SimpleMarkerSymbol from '@arcgis/core/symbols/SimpleMarkerSymbol';
+import maplibregl from 'maplibre-gl';
+import type { Feature, FeatureCollection, Polygon, LineString, Point, Geometry } from 'geojson';
 
-/** Temporary layer IDs used by tools */
+// Cache interno de dados de cada source tool
+const _sourceCache = new Map<string, FeatureCollection>();
+
 const TEMP_LAYER_IDS = [
   'tool-split-layer',
   'tool-merge-layer',
@@ -27,211 +26,179 @@ const TEMP_LAYER_IDS = [
   'tool-general-layer',
 ];
 
-function isTemporaryLayer(layerId: string): boolean {
-  return TEMP_LAYER_IDS.includes(layerId) || layerId.startsWith('tool-');
+function _setData(map: maplibregl.Map, sourceId: string, data: FeatureCollection) {
+  _sourceCache.set(sourceId, data);
+  const src = map.getSource(sourceId) as maplibregl.GeoJSONSource | undefined;
+  if (src) src.setData(data);
 }
 
-/**
- * Find selected polygon in view (first visible polygon from non-temp layers)
- */
-export function findSelectedPolygon(view: __esri.MapView): __esri.Polygon | null {
-  if (!view.map) return null;
-
-  let foundPolygon: __esri.Polygon | null = null;
-
-  view.map.allLayers.forEach((layer) => {
-    if (layer instanceof GraphicsLayer && layer.visible && !isTemporaryLayer(layer.id)) {
-      layer.graphics.forEach((graphic) => {
-        if (!foundPolygon && graphic.geometry?.type === 'polygon') {
-          foundPolygon = graphic.geometry as __esri.Polygon;
-        }
-      });
-    }
-  });
-
-  return foundPolygon;
+function _getFeatures(sourceId: string): Feature[] {
+  return _sourceCache.get(sourceId)?.features ?? [];
 }
 
-/**
- * Find all polygons in view
- */
-export function findAllPolygons(view: __esri.MapView): __esri.Polygon[] {
-  const polygons: __esri.Polygon[] = [];
-  if (!view.map) return polygons;
+export function getOrCreateToolLayer(map: maplibregl.Map, layerId: string): string {
+  const sourceId = `${layerId}-source`;
+  if (!map.getSource(sourceId)) {
+    const empty: FeatureCollection = { type: 'FeatureCollection', features: [] };
+    map.addSource(sourceId, { type: 'geojson', data: empty });
+    _sourceCache.set(sourceId, empty);
 
-  view.map.allLayers.forEach((layer) => {
-    if (layer instanceof GraphicsLayer && layer.visible && !isTemporaryLayer(layer.id)) {
-      layer.graphics.forEach((graphic) => {
-        if (graphic.geometry?.type === 'polygon') {
-          polygons.push(graphic.geometry as __esri.Polygon);
-        }
-      });
-    }
-  });
-
-  return polygons;
-}
-
-/**
- * Render split polygons with different colors
- */
-export function renderSplitPolygons(
-  layer: __esri.GraphicsLayer,
-  poly1: __esri.Polygon,
-  poly2: __esri.Polygon
-): void {
-  layer.removeAll();
-
-  const symbol1 = new SimpleFillSymbol({
-    color: [76, 175, 80, 128],
-    outline: new SimpleLineSymbol({ color: [76, 175, 80, 255], width: 2 }),
-  });
-
-  const symbol2 = new SimpleFillSymbol({
-    color: [33, 150, 243, 128],
-    outline: new SimpleLineSymbol({ color: [33, 150, 243, 255], width: 2 }),
-  });
-
-  layer.add(new Graphic({ geometry: poly1, symbol: symbol1 }));
-  layer.add(new Graphic({ geometry: poly2, symbol: symbol2 }));
-}
-
-/**
- * Render buffer result
- */
-export function renderBuffer(
-  layer: __esri.GraphicsLayer,
-  buffer: __esri.Polygon
-): void {
-  layer.removeAll();
-
-  const symbol = new SimpleFillSymbol({
-    color: [255, 152, 0, 102],
-    outline: new SimpleLineSymbol({ color: [255, 152, 0, 255], width: 2, style: 'dash' }),
-  });
-
-  layer.add(new Graphic({ geometry: buffer, symbol }));
-}
-
-/**
- * Render geometry result (generic)
- */
-export function renderGeometryResult(
-  layer: __esri.GraphicsLayer,
-  geometry: __esri.Geometry,
-  color: [number, number, number] = [156, 39, 176]
-): void {
-  layer.removeAll();
-
-  if (geometry.type === 'polygon') {
-    const symbol = new SimpleFillSymbol({
-      color: [color[0], color[1], color[2], 128],
-      outline: new SimpleLineSymbol({ color: [color[0], color[1], color[2], 255], width: 2 }),
+    map.addLayer({
+      id: `${layerId}-fill`,
+      type: 'fill',
+      source: sourceId,
+      filter: ['==', '$type', 'Polygon'],
+      paint: { 'fill-color': '#9c27b0', 'fill-opacity': 0.4 },
     });
-    layer.add(new Graphic({ geometry, symbol }));
-  } else if (geometry.type === 'polyline') {
-    const symbol = new SimpleLineSymbol({
-      color: [color[0], color[1], color[2], 255],
-      width: 3,
+    map.addLayer({
+      id: `${layerId}-line`,
+      type: 'line',
+      source: sourceId,
+      paint: { 'line-color': '#9c27b0', 'line-width': 2 },
     });
-    layer.add(new Graphic({ geometry, symbol }));
-  } else if (geometry.type === 'point') {
-    const symbol = new SimpleMarkerSymbol({
-      color: [color[0], color[1], color[2], 255],
-      size: 10,
-      outline: new SimpleLineSymbol({ color: [255, 255, 255], width: 1 }),
+    map.addLayer({
+      id: `${layerId}-circle`,
+      type: 'circle',
+      source: sourceId,
+      filter: ['==', '$type', 'Point'],
+      paint: {
+        'circle-color': '#9c27b0',
+        'circle-radius': 5,
+        'circle-stroke-width': 1,
+        'circle-stroke-color': '#fff',
+      },
     });
-    layer.add(new Graphic({ geometry, symbol }));
   }
+  return sourceId;
 }
 
-/**
- * Render measurement point
- */
+export function clearToolLayer(map: maplibregl.Map, sourceId: string) {
+  _setData(map, sourceId, { type: 'FeatureCollection', features: [] });
+}
+
+export function clearTemporaryLayers(map: maplibregl.Map) {
+  TEMP_LAYER_IDS.forEach(id => {
+    const sourceId = `${id}-source`;
+    if (map.getSource(sourceId)) clearToolLayer(map, sourceId);
+  });
+}
+
+function _applyColor(map: maplibregl.Map, layerId: string, color: [number, number, number]) {
+  const css = `rgb(${color[0]},${color[1]},${color[2]})`;
+  if (map.getLayer(`${layerId}-fill`)) map.setPaintProperty(`${layerId}-fill`, 'fill-color', css);
+  if (map.getLayer(`${layerId}-line`)) map.setPaintProperty(`${layerId}-line`, 'line-color', css);
+  if (map.getLayer(`${layerId}-circle`)) map.setPaintProperty(`${layerId}-circle`, 'circle-color', css);
+}
+
+export function renderSplitPolygons(
+  map: maplibregl.Map,
+  sourceId: string,
+  poly1: Feature<Polygon>,
+  poly2: Feature<Polygon>
+) {
+  const p1 = { ...poly1, properties: { ...(poly1.properties || {}), _half: '1' } };
+  const p2 = { ...poly2, properties: { ...(poly2.properties || {}), _half: '2' } };
+  const layerId = sourceId.replace('-source', '');
+  if (map.getLayer(`${layerId}-fill`)) {
+    map.setPaintProperty(`${layerId}-fill`, 'fill-color', [
+      'match', ['get', '_half'], '1', '#4caf50', '#2196f3',
+    ]);
+  }
+  _setData(map, sourceId, { type: 'FeatureCollection', features: [p1, p2] });
+}
+
+export function renderBuffer(
+  map: maplibregl.Map,
+  sourceId: string,
+  buffer: Feature<Polygon>
+) {
+  const layerId = sourceId.replace('-source', '');
+  if (map.getLayer(`${layerId}-fill`)) {
+    map.setPaintProperty(`${layerId}-fill`, 'fill-color', '#ff9800');
+    map.setPaintProperty(`${layerId}-fill`, 'fill-opacity', 0.3);
+  }
+  if (map.getLayer(`${layerId}-line`)) {
+    map.setPaintProperty(`${layerId}-line`, 'line-color', '#ff9800');
+    map.setPaintProperty(`${layerId}-line`, 'line-dasharray', [2, 2]);
+  }
+  _setData(map, sourceId, { type: 'FeatureCollection', features: [buffer] });
+}
+
+export function renderGeometryResult(
+  map: maplibregl.Map,
+  sourceId: string,
+  geometry: Feature,
+  color: [number, number, number] = [156, 39, 176]
+) {
+  _applyColor(map, sourceId.replace('-source', ''), color);
+  _setData(map, sourceId, { type: 'FeatureCollection', features: [geometry] });
+}
+
 export function renderMeasurementPoint(
-  layer: __esri.GraphicsLayer,
-  point: __esri.Point,
+  map: maplibregl.Map,
+  sourceId: string,
+  coords: [number, number],
   color: [number, number, number] = [255, 0, 0]
-): void {
-  const symbol = new SimpleMarkerSymbol({
-    color: [color[0], color[1], color[2], 255],
-    size: 8,
-    outline: new SimpleLineSymbol({ color: [255, 255, 255], width: 1 }),
-  });
-  layer.add(new Graphic({ geometry: point, symbol }));
+) {
+  _applyColor(map, sourceId.replace('-source', ''), color);
+  const pt: Feature<Point> = { type: 'Feature', geometry: { type: 'Point', coordinates: coords }, properties: {} };
+  const existing = _getFeatures(sourceId);
+  _setData(map, sourceId, { type: 'FeatureCollection', features: [...existing, pt] });
 }
 
-/**
- * Render measurement line
- */
 export function renderMeasurementLine(
-  layer: __esri.GraphicsLayer,
-  line: __esri.Polyline,
+  map: maplibregl.Map,
+  sourceId: string,
+  coords: [number, number][],
   color: [number, number, number] = [255, 165, 0]
-): void {
-  const symbol = new SimpleLineSymbol({
-    color: [color[0], color[1], color[2], 255],
-    width: 2,
-    style: 'dash',
-  });
-  layer.add(new Graphic({ geometry: line, symbol }));
+) {
+  _applyColor(map, sourceId.replace('-source', ''), color);
+  const line: Feature<LineString> = { type: 'Feature', geometry: { type: 'LineString', coordinates: coords }, properties: {} };
+  const existing = _getFeatures(sourceId);
+  _setData(map, sourceId, { type: 'FeatureCollection', features: [...existing, line] });
 }
 
 /**
  * Calculate distance between two points (Haversine formula)
  */
-export function calculateDistance(
-  p1: [number, number],
-  p2: [number, number]
-): number {
+export function calculateDistance(p1: [number, number], p2: [number, number]): number {
   const [lon1, lat1] = p1;
   const [lon2, lat2] = p2;
-
   const R = 6371000;
   const phi1 = (lat1 * Math.PI) / 180;
   const phi2 = (lat2 * Math.PI) / 180;
   const deltaPhi = ((lat2 - lat1) * Math.PI) / 180;
   const deltaLambda = ((lon2 - lon1) * Math.PI) / 180;
-
-  const a = Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
-    Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-  return R * c;
+  const a = Math.sin(deltaPhi / 2) ** 2 + Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 /**
- * Clear all temporary tool layers
+ * Find the first visible polygon in the map (center of viewport)
  */
-export function clearTemporaryLayers(view: __esri.MapView): void {
-  if (!view.map) return;
-
-  const layersToRemove: __esri.Layer[] = [];
-  view.map.allLayers.forEach((layer) => {
-    if (isTemporaryLayer(layer.id)) {
-      layersToRemove.push(layer);
-    }
-  });
-
-  layersToRemove.forEach((layer) => view.map!.remove(layer));
+export function findSelectedPolygon(map: maplibregl.Map): Feature<Polygon> | null {
+  const el = map.getContainer();
+  const pt: [number, number] = [el.clientWidth / 2, el.clientHeight / 2];
+  const features = map.queryRenderedFeatures(pt);
+  const found = features.find(f => f.geometry.type === 'Polygon');
+  return found ? (found as unknown as Feature<Polygon>) : null;
 }
 
 /**
- * Create or get a temporary GraphicsLayer for a tool
+ * Find all polygons from the lotes-source
  */
-export function getOrCreateToolLayer(
-  view: __esri.MapView,
-  layerId: string
-): GraphicsLayer {
-  if (view.map) {
-    const existing = view.map.findLayerById(layerId);
-    if (existing && existing instanceof GraphicsLayer) {
-      existing.removeAll();
-      return existing;
-    }
-  }
+export function findAllPolygons(map: maplibregl.Map): Feature<Polygon>[] {
+  const stored = _sourceCache.get('lotes-source');
+  if (stored) return stored.features.filter(f => f.geometry.type === 'Polygon') as Feature<Polygon>[];
+  const features = map.queryRenderedFeatures();
+  return features
+    .filter(f => f.geometry.type === 'Polygon')
+    .map(f => ({ type: 'Feature', geometry: f.geometry as Polygon, properties: f.properties || {} } as Feature<Polygon>));
+}
 
-  const layer = new GraphicsLayer({ id: layerId, title: layerId.replace('tool-', '').replace('-layer', '') });
-  if (view.map) view.map.add(layer);
-  return layer;
+/**
+ * Expose the source cache so MapContainer can register lotes data
+ */
+export function registerSourceData(sourceId: string, data: FeatureCollection) {
+  _sourceCache.set(sourceId, data);
 }

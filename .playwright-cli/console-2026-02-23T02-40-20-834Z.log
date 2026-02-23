@@ -1,0 +1,28 @@
+[     878ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://127.0.0.1:5173/favicon.ico:0
+[   47409ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://xntxtdximacsdnldouxa.supabase.co/auth/v1/signup:0
+[  144735ms] [WARNING] [esri.widgets.Expand] 🛑 DEPRECATED - This widget is deprecated. Use the Expand component instead.
+	🛠️ Replacement: <arcgis-expand></arcgis-expand>
+	⚙️ Version: 4.34
+	🔗 See for more details:
+		Expand component reference: https://www.esriurl.com/arcgis-expand/
+		Esri's move to web components: https://www.esriurl.com/components-transition-plan/ @ http://127.0.0.1:5173/node_modules/.vite/deps/chunk-2DTXA4YW.js?v=381a30a9:122
+[  145183ms] [WARNING] [esri.widgets.Legend] 🛑 DEPRECATED - This widget is deprecated. Use the Legend component instead.
+	🛠️ Replacement: <arcgis-legend></arcgis-legend>
+	⚙️ Version: 4.34
+	🔗 See for more details:
+		Legend component reference: https://www.esriurl.com/arcgis-legend/
+		Esri's move to web components: https://www.esriurl.com/components-transition-plan/ @ http://127.0.0.1:5173/node_modules/.vite/deps/chunk-2DTXA4YW.js?v=381a30a9:122
+[  522540ms] [ERROR] Access to fetch at 'http://localhost:8010/api/pagamentos?projeto_id=4' from origin 'http://127.0.0.1:5173' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:5173/app:0
+[  522541ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:8010/api/pagamentos?projeto_id=4:0
+[  524195ms] [ERROR] Access to fetch at 'http://localhost:8010/api/pagamentos?projeto_id=4' from origin 'http://127.0.0.1:5173' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:5173/app:0
+[  524195ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:8010/api/pagamentos?projeto_id=4:0
+[  526051ms] [ERROR] Access to fetch at 'http://localhost:8010/api/pagamentos?projeto_id=4' from origin 'http://127.0.0.1:5173' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:5173/app:0
+[  526052ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:8010/api/pagamentos?projeto_id=4:0
+[  593601ms] [ERROR] Access to fetch at 'http://localhost:8010/api/orcamentos' from origin 'http://127.0.0.1:5173' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:5173/app:0
+[  593601ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:8010/api/orcamentos:0
+[  596333ms] [ERROR] Access to fetch at 'http://localhost:8010/api/pagamentos?projeto_id=4' from origin 'http://127.0.0.1:5173' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:5173/app:0
+[  596333ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:8010/api/pagamentos?projeto_id=4:0
+[  597817ms] [ERROR] Access to fetch at 'http://localhost:8010/api/pagamentos?projeto_id=4' from origin 'http://127.0.0.1:5173' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:5173/app:0
+[  597817ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:8010/api/pagamentos?projeto_id=4:0
+[  599637ms] [ERROR] Access to fetch at 'http://localhost:8010/api/pagamentos?projeto_id=4' from origin 'http://127.0.0.1:5173' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:5173/app:0
+[  599637ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:8010/api/pagamentos?projeto_id=4:0

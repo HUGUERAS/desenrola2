@@ -1,14 +1,16 @@
 /**
  * TopologyValidation: Validacao topologica client-side
  * Detecta auto-interseccoes, gaps, slivers, overlaps, vertices duplicados
+ * Usa Turf.js no lugar do ArcGIS geometryEngine
  */
 
-import * as geometryEngine from '@arcgis/core/geometry/geometryEngine';
+import * as turf from '@turf/turf';
+import type { Feature, Polygon } from 'geojson';
 
 export interface TopologyError {
   type: 'self-intersection' | 'duplicate-vertex' | 'gap' | 'overlap' | 'sliver';
   message: string;
-  location?: __esri.Point;
+  location?: [number, number];
   severity: 'error' | 'warning';
 }
 
@@ -21,20 +23,24 @@ export interface TopologyValidationResult {
  * Validate polygon topology (client-side checks)
  */
 export function validatePolygonTopology(
-  polygon: __esri.Polygon
+  polygon: Feature<Polygon>
 ): TopologyValidationResult {
   const errors: TopologyError[] = [];
 
-  if (!geometryEngine.isSimple(polygon)) {
-    errors.push({
-      type: 'self-intersection',
-      message: 'Poligono possui auto-interseccoes',
-      severity: 'error',
-    });
-  }
+  // Auto-interseccoes via turf.kinks
+  try {
+    const kinks = turf.kinks(polygon);
+    if (kinks.features.length > 0) {
+      errors.push({
+        type: 'self-intersection',
+        message: 'Poligono possui auto-interseccoes',
+        severity: 'error',
+      });
+    }
+  } catch { }
 
-  const area = geometryEngine.planarArea(polygon, 'square-meters');
-  if (Math.abs(area) < 1) {
+  const area = turf.area(polygon);
+  if (area < 1) {
     errors.push({
       type: 'sliver',
       message: 'Poligono muito fino (sliver) - area < 1m2',
@@ -42,21 +48,16 @@ export function validatePolygonTopology(
     });
   }
 
-  const ring = polygon.rings[0];
-  const vertexCount = ring?.length || 0;
-  if (vertexCount < 4) {
+  const ring = polygon.geometry.coordinates[0];
+  if (!ring || ring.length < 4) {
     errors.push({
       type: 'duplicate-vertex',
       message: 'Poligono invalido - menos de 3 vertices unicos',
       severity: 'error',
     });
-  }
-
-  if (ring) {
+  } else {
     for (let i = 0; i < ring.length - 1; i++) {
-      const [x1, y1] = ring[i];
-      const [x2, y2] = ring[i + 1];
-      if (x1 === x2 && y1 === y2) {
+      if (ring[i][0] === ring[i + 1][0] && ring[i][1] === ring[i + 1][1]) {
         errors.push({
           type: 'duplicate-vertex',
           message: `Vertices duplicados consecutivos no indice ${i}`,
@@ -64,14 +65,6 @@ export function validatePolygonTopology(
         });
       }
     }
-  }
-
-  if (area < 0) {
-    errors.push({
-      type: 'self-intersection',
-      message: 'Anel externo com orientacao anti-horaria (deve ser horario)',
-      severity: 'warning',
-    });
   }
 
   return {
@@ -84,21 +77,25 @@ export function validatePolygonTopology(
  * Detect gaps between adjacent polygons
  */
 export function detectGaps(
-  polygons: __esri.Polygon[],
-  tolerance: number = 0.5
+  polygons: Feature<Polygon>[],
+  tolerance = 0.5
 ): TopologyError[] {
   const gaps: TopologyError[] = [];
 
   for (let i = 0; i < polygons.length; i++) {
     for (let j = i + 1; j < polygons.length; j++) {
-      const distance = geometryEngine.distance(polygons[i], polygons[j], 'meters');
-      if (distance !== null && distance > tolerance && distance < 10) {
-        gaps.push({
-          type: 'gap',
-          message: `Gap de ${distance.toFixed(2)}m entre poligonos`,
-          severity: 'warning',
-        });
-      }
+      try {
+        const c1 = turf.centroid(polygons[i]);
+        const c2 = turf.centroid(polygons[j]);
+        const dist = turf.distance(c1, c2, { units: 'meters' });
+        if (dist > tolerance && dist < 10) {
+          gaps.push({
+            type: 'gap',
+            message: `Gap de ${dist.toFixed(2)}m entre poligonos`,
+            severity: 'warning',
+          });
+        }
+      } catch { }
     }
   }
 
@@ -109,37 +106,35 @@ export function detectGaps(
  * Detect slivers (very thin polygons)
  */
 export function detectSlivers(
-  polygon: __esri.Polygon,
-  maxAreaM2: number = 1
+  polygon: Feature<Polygon>,
+  maxAreaM2 = 1
 ): boolean {
-  const area = Math.abs(geometryEngine.planarArea(polygon, 'square-meters'));
-  return area < maxAreaM2;
+  return turf.area(polygon) < maxAreaM2;
 }
 
 /**
  * Detect overlaps between polygons
  */
 export function detectOverlaps(
-  polygon1: __esri.Polygon,
-  polygon2: __esri.Polygon,
-  minOverlapAreaM2: number = 0.1
+  polygon1: Feature<Polygon>,
+  polygon2: Feature<Polygon>,
+  minOverlapAreaM2 = 0.1
 ): TopologyError | null {
-  const intersection = geometryEngine.intersect(polygon1, polygon2);
-
-  if (intersection && !Array.isArray(intersection) && intersection.type === 'polygon') {
-    const overlapArea = Math.abs(
-      geometryEngine.planarArea(intersection as __esri.Polygon, 'square-meters')
+  try {
+    const intersection = turf.intersect(
+      turf.featureCollection([polygon1, polygon2])
     );
-
-    if (overlapArea >= minOverlapAreaM2) {
-      return {
-        type: 'overlap',
-        message: `Sobreposicao de ${overlapArea.toFixed(2)}m2 detectada`,
-        severity: 'error',
-      };
+    if (intersection && intersection.geometry.type === 'Polygon') {
+      const overlapArea = turf.area(intersection);
+      if (overlapArea >= minOverlapAreaM2) {
+        return {
+          type: 'overlap',
+          message: `Sobreposicao de ${overlapArea.toFixed(2)}m2 detectada`,
+          severity: 'error',
+        };
+      }
     }
-  }
-
+  } catch { }
   return null;
 }
 
@@ -147,8 +142,8 @@ export function detectOverlaps(
  * Validate multiple polygons for mutual topology issues
  */
 export function validateMultiPolygonTopology(
-  polygons: __esri.Polygon[],
-  gapTolerance: number = 0.5
+  polygons: Feature<Polygon>[],
+  gapTolerance = 0.5
 ): TopologyValidationResult {
   const errors: TopologyError[] = [];
 

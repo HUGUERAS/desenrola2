@@ -1,0 +1,15 @@
+[Unit]
+Description=Desenrola API (FastAPI)
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/desenrola/apps/api
+EnvironmentFile=/var/www/desenrola/apps/api/.env
+ExecStart=/var/www/desenrola/.venv/bin/python -m uvicorn main:app --host 127.0.0.1 --port 8010
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

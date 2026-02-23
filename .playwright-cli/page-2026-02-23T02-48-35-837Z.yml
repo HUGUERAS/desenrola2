@@ -1,0 +1,96 @@
+- generic [ref=e2]:
+  - generic [ref=e45]:
+    - banner [ref=e46]:
+      - generic [ref=e47]:
+        - button "Fechar sidebar" [ref=e48] [cursor=pointer]:
+          - img [ref=e49]
+        - generic [ref=e52]:
+          - img [ref=e53]
+          - generic [ref=e55]: Desenrola
+        - generic [ref=e56]: 📐 Topógrafo
+      - generic [ref=e415]: 📋 Meu Primeiro Projeto
+      - button "Sair" [ref=e58] [cursor=pointer]:
+        - img [ref=e59]
+        - generic [ref=e62]: Sair
+    - generic [ref=e63]:
+      - complementary [ref=e64]:
+        - navigation [ref=e65]:
+          - button "Projetos" [ref=e317] [cursor=pointer]:
+            - img [ref=e318]
+            - generic [ref=e320]: Projetos
+          - generic [ref=e72]:
+            - generic [ref=e321]: FERRAMENTAS
+            - button "Editor (Desenho/CAD)" [ref=e322] [cursor=pointer]:
+              - img [ref=e74]
+              - generic [ref=e79]: Editor (Desenho/CAD)
+          - button "Validar Desenho" [ref=e324] [cursor=pointer]:
+            - img [ref=e325]
+            - generic [ref=e328]: Validar Desenho
+          - button "Identificar Vizinhos" [ref=e330] [cursor=pointer]:
+            - img [ref=e331]
+            - generic [ref=e334]: Identificar Vizinhos
+          - button "Gerar Peças" [ref=e336] [cursor=pointer]:
+            - img [ref=e337]
+            - generic [ref=e340]: Gerar Peças
+          - button "Documentos" [ref=e89] [cursor=pointer]:
+            - img [ref=e90]
+            - generic [ref=e93]: Documentos
+          - generic [ref=e341]:
+            - generic [ref=e342]: GESTÃO
+            - button "Financeiro" [ref=e343] [cursor=pointer]:
+              - img [ref=e344]
+              - generic [ref=e346]: Financeiro
+        - generic [ref=e778]:
+          - heading "📂 Documentos do Lote" [level=3] [ref=e780]
+          - generic [ref=e781]:
+            - button "Enviados" [ref=e782] [cursor=pointer]:
+              - img [ref=e783]
+              - text: Enviados
+            - button "Técnicos" [ref=e786] [cursor=pointer]:
+              - img [ref=e787]
+              - text: Técnicos
+          - generic [ref=e858]:
+            - button "Gerar Memorial Descritivo" [ref=e860]:
+              - img [ref=e872]
+              - text: Gerar Memorial Descritivo
+            - generic [ref=e875]:
+              - img [ref=e877]
+              - generic [ref=e880]:
+                - strong [ref=e881]: MEMORIAL
+                - text: 22/02/2026
+              - link "Baixar" [ref=e882] [cursor=pointer]:
+                - /url: https://api.desenrola.com/docs/11/1771814913.442866.txt
+                - img [ref=e883]
+        - generic [ref=e699]:
+          - generic [ref=e700]:
+            - img [ref=e701]
+            - generic [ref=e703]: Meu Primeiro Projeto
+          - generic [ref=e755]:
+            - img [ref=e756]
+            - generic [ref=e760]: "Lote: Cliente Teste"
+      - main [ref=e159]:
+        - generic [ref=e162]:
+          - application [ref=e163]
+          - generic [ref=e165]:
+            - generic "Mais Zoom" [ref=e166] [cursor=pointer]:
+              - button "Mais Zoom" [ref=e168]:
+                - img [ref=e170]
+            - generic "Menos Zoom" [ref=e172] [cursor=pointer]:
+              - button "Menos Zoom" [ref=e174]:
+                - img [ref=e176]
+    - contentinfo [ref=e226]:
+      - generic [ref=e227]:
+        - generic [ref=e228]: SRID
+        - generic [ref=e229]: 4674 (SIRGAS 2000)
+      - generic [ref=e230]:
+        - generic [ref=e231]: Coords
+        - generic [ref=e232]: —, —
+      - generic [ref=e761]:
+        - generic [ref=e762]: Lote
+        - generic [ref=e763]: "#11 · DESENHO"
+      - generic [ref=e234]: Desenrola v1.0
+  - region "Notifications alt+T":
+    - list:
+      - listitem [ref=e886]:
+        - img [ref=e888]
+        - generic [ref=e891]: Documento gerado com sucesso!

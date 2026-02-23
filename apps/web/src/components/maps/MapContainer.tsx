@@ -1,34 +1,18 @@
 /**
- * MapContainer — Mapa ArcGIS unificado para o SPA
- * Combina: visualização de lotes + desenho (Sketch) + coordenadas do cursor
- *
- * Usa SRID 4674 (SIRGAS 2000) — visualmente idêntico a 4326.
- * O ArcGIS exibe nativamente em Web Mercator; convertemos para geográfico ao exportar GeoJSON.
+ * MapContainer — Mapa MapLibre GL JS
+ * Substitui ArcGIS Maps SDK por MapLibre + MapboxGLDraw + Turf.js
+ * Mantém a mesma interface de props e comportamento visual.
  */
 import { useEffect, useRef, useState } from 'react';
-import MapView from '@arcgis/core/views/MapView';
-import ArcGISMap from '@arcgis/core/Map';
-import GraphicsLayer from '@arcgis/core/layers/GraphicsLayer';
-import Graphic from '@arcgis/core/Graphic';
-import Polygon from '@arcgis/core/geometry/Polygon';
-import Sketch from '@arcgis/core/widgets/Sketch';
-
-import SimpleFillSymbol from '@arcgis/core/symbols/SimpleFillSymbol';
-import SimpleLineSymbol from '@arcgis/core/symbols/SimpleLineSymbol';
-import TextSymbol from '@arcgis/core/symbols/TextSymbol';
-import Point from '@arcgis/core/geometry/Point';
-import * as webMercatorUtils from '@arcgis/core/geometry/support/webMercatorUtils';
-import esriConfig from '@arcgis/core/config';
-import LayerList from "@arcgis/core/widgets/LayerList";
-import Expand from "@arcgis/core/widgets/Expand";
-import * as intl from "@arcgis/core/intl";
-import '@arcgis/core/assets/esri/themes/dark/main.css';
-
+import maplibregl from 'maplibre-gl';
+import MapboxDraw from '@mapbox/mapbox-gl-draw';
+import type { Polygon, Feature, FeatureCollection } from 'geojson';
 import { useApp } from '../../pages/AppShell';
 import { wktToRings, calculateCentroid, geoJSONToRings, ringsToGeoJSON } from '../../lib/geo-utils';
 import { useToolExecution } from '../../hooks/useToolExecution';
+import { registerSourceData } from '../../lib/geometry/GeometryUtils';
 
-/* ── Tipos de camada ── */
+/* ── Tipos ── */
 export interface LoteGeometry {
     id: number;
     wkt?: string;
@@ -44,33 +28,13 @@ interface MapContainerProps {
     onLoteClick?: (loteId: number) => void;
 }
 
-/* ── Símbolos por tipo ── */
-const SYMBOLS: Record<string, () => SimpleFillSymbol> = {
-    rascunho: () =>
-        new SimpleFillSymbol({
-            color: [255, 193, 7, 0.2],
-            outline: new SimpleLineSymbol({ color: [255, 193, 7], width: 2, style: 'dash' }),
-        }),
-    oficial: () =>
-        new SimpleFillSymbol({
-            color: [16, 185, 129, 0.25],
-            outline: new SimpleLineSymbol({ color: [16, 185, 129], width: 2, style: 'solid' }),
-        }),
-    sobreposicao: () =>
-        new SimpleFillSymbol({
-            color: [239, 68, 68, 0.35],
-            outline: new SimpleLineSymbol({ color: [239, 68, 68], width: 3, style: 'solid' }),
-        }),
-    vizinho: () =>
-        new SimpleFillSymbol({
-            color: [148, 163, 184, 0.15],
-            outline: new SimpleLineSymbol({ color: [148, 163, 184], width: 1, style: 'dot' }),
-        }),
-    ativo: () =>
-        new SimpleFillSymbol({
-            color: [59, 130, 246, 0.3],
-            outline: new SimpleLineSymbol({ color: [59, 130, 246], width: 3, style: 'solid' }),
-        }),
+/* ── Cores por tipo (fill, line) ── */
+const TYPE_COLORS: Record<string, { fill: string; line: string; opacity: number }> = {
+    rascunho: { fill: '#ffc107', line: '#ffc107', opacity: 0.2 },
+    oficial: { fill: '#10b981', line: '#10b981', opacity: 0.25 },
+    sobreposicao: { fill: '#ef4444', line: '#ef4444', opacity: 0.35 },
+    vizinho: { fill: '#94a3b8', line: '#94a3b8', opacity: 0.15 },
+    ativo: { fill: '#3b82f6', line: '#3b82f6', opacity: 0.3 },
 };
 
 export default function MapContainer({
@@ -79,16 +43,12 @@ export default function MapContainer({
     onGeometryChange,
     onLoteClick,
 }: MapContainerProps) {
-    const { setCursorCoords, activeTool, setToolResult, toolLayers, sketchTool, setSketchTool } = useApp();
+    const { setCursorCoords, activeTool, setToolResult, sketchTool, setSketchTool } = useApp();
     const mapDivRef = useRef<HTMLDivElement>(null);
-    const viewRef = useRef<MapView | null>(null);
-    const [mapLoaded, setMapLoaded] = useState(false); // Só para avisar outros effects
-    const sketchRef = useRef<Sketch | null>(null);
-    const lotesLayerRef = useRef<GraphicsLayer | null>(null);
-    const drawLayerRef = useRef<GraphicsLayer | null>(null);
-    const layerListExpandRef = useRef<InstanceType<typeof Expand> | null>(null);
+    const mapRef = useRef<maplibregl.Map | null>(null);
+    const drawRef = useRef<InstanceType<typeof MapboxDraw> | null>(null);
+    const [mapLoaded, setMapLoaded] = useState(false);
 
-    // Guardar callbacks em refs para evitar recriar o mapa se elas mudarem
     const onLoteClickRef = useRef(onLoteClick);
     onLoteClickRef.current = onLoteClick;
     const setCursorCoordsRef = useRef(setCursorCoords);
@@ -96,81 +56,135 @@ export default function MapContainer({
     const onGeometryChangeRef = useRef(onGeometryChange);
     onGeometryChangeRef.current = onGeometryChange;
 
-    const drawingEnabledRef = useRef(drawingEnabled);
-    drawingEnabledRef.current = drawingEnabled;
-
-    // Inicializa mapa uma vez
+    /* ── Inicializa mapa uma vez ── */
     useEffect(() => {
-        if (!mapDivRef.current || viewRef.current) return;
+        if (!mapDivRef.current || mapRef.current) return;
 
-        esriConfig.assetsPath = '/assets/esri';
-        intl.setLocale("pt-BR");
-
-        const apiKey = import.meta.env.VITE_ESRI_API_KEY;
-        if (apiKey) esriConfig.apiKey = apiKey;
-
-        const lotsL = new GraphicsLayer({ title: 'Lotes' });
-        const drawL = new GraphicsLayer({ title: 'Desenho' });
-        lotesLayerRef.current = lotsL;
-        drawLayerRef.current = drawL;
-
-        const map = new ArcGISMap({
-            basemap: apiKey ? 'satellite' : 'osm',
-            layers: [lotsL, drawL],
-        });
-
-        const view = new MapView({
+        const map = new maplibregl.Map({
             container: mapDivRef.current,
-            map,
+            style: {
+                version: 8,
+                glyphs: 'https://fonts.openmaptiles.org/{fontstack}/{range}.pbf',
+                sources: {
+                    osm: {
+                        type: 'raster',
+                        tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+                        tileSize: 256,
+                        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+                    },
+                },
+                layers: [{ id: 'osm-layer', type: 'raster', source: 'osm' }],
+            },
             center: [-47.93, -15.78],
             zoom: 13,
-            ui: { components: ['zoom'] },
         });
 
-        view.when(
-            () => {
-                viewRef.current = view;
-                setMapLoaded(true);
-            },
-            (err: any) => console.error('[MapContainer] Erro ArcGIS:', err)
-        );
+        map.addControl(new maplibregl.NavigationControl(), 'top-left');
 
-        // Rastrear coordenadas do cursor — usa ref para não recapturar closure
-        view.on('pointer-move', (evt) => {
-            const pt = view.toMap(evt);
-            if (pt) {
-                const geo = webMercatorUtils.webMercatorToGeographic(pt) as __esri.Point;
-                setCursorCoordsRef.current?.({ lat: geo.latitude ?? 0, lon: geo.longitude ?? 0 });
+        map.on('load', () => {
+            // Fonte de lotes (preenchida depois)
+            map.addSource('lotes-source', {
+                type: 'geojson',
+                data: { type: 'FeatureCollection', features: [] } as FeatureCollection,
+            });
+
+            // Camada fill dos lotes
+            map.addLayer({
+                id: 'lotes-fill',
+                type: 'fill',
+                source: 'lotes-source',
+                paint: {
+                    'fill-color': [
+                        'match', ['get', 'loteType'],
+                        'rascunho', '#ffc107',
+                        'oficial', '#10b981',
+                        'sobreposicao', '#ef4444',
+                        'vizinho', '#94a3b8',
+                        '#3b82f6',
+                    ],
+                    'fill-opacity': [
+                        'match', ['get', 'loteType'],
+                        'rascunho', 0.2,
+                        'sobreposicao', 0.35,
+                        'vizinho', 0.15,
+                        0.3,
+                    ],
+                },
+            });
+
+            // Camada de borda dos lotes
+            map.addLayer({
+                id: 'lotes-line',
+                type: 'line',
+                source: 'lotes-source',
+                paint: {
+                    'line-color': [
+                        'match', ['get', 'loteType'],
+                        'rascunho', '#ffc107',
+                        'oficial', '#10b981',
+                        'sobreposicao', '#ef4444',
+                        'vizinho', '#94a3b8',
+                        '#3b82f6',
+                    ],
+                    'line-width': ['match', ['get', 'loteType'], 'sobreposicao', 3, 2],
+                    'line-dasharray': ['case', ['==', ['get', 'loteType'], 'rascunho'], ['literal', [4, 2]], ['literal', [1]]],
+                },
+            });
+
+            // Camada de labels dos lotes
+            map.addLayer({
+                id: 'lotes-label',
+                type: 'symbol',
+                source: 'lotes-source',
+                layout: {
+                    'text-field': ['get', 'label'],
+                    'text-size': 11,
+                    'text-font': ['Open Sans Bold'],
+                    'text-anchor': 'center',
+                },
+                paint: {
+                    'text-color': '#e2e8f0',
+                    'text-halo-color': '#0f172a',
+                    'text-halo-width': 1.5,
+                },
+            });
+
+            mapRef.current = map;
+            setMapLoaded(true);
+        });
+
+        // Coordenadas do cursor
+        map.on('mousemove', (e) => {
+            setCursorCoordsRef.current?.({ lat: e.lngLat.lat, lon: e.lngLat.lng });
+        });
+
+        // Clique em lote
+        map.on('click', 'lotes-fill', (e) => {
+            const feature = e.features?.[0];
+            if (feature?.properties?.loteId) {
+                onLoteClickRef.current?.(feature.properties.loteId);
             }
         });
 
-        // Clique em lote — usa ref para não recapturar closure
-        view.on('click', (evt) => {
-            view.hitTest(evt).then((response) => {
-                const hit = response.results.find(
-                    (r) => r.type === 'graphic' && r.graphic?.attributes?.loteId
-                );
-                if (hit && hit.type === 'graphic') {
-                    onLoteClickRef.current?.(hit.graphic.attributes.loteId);
-                }
-            });
-        });
+        // Cursor pointer sobre lotes
+        map.on('mouseenter', 'lotes-fill', () => { map.getCanvas().style.cursor = 'pointer'; });
+        map.on('mouseleave', 'lotes-fill', () => { map.getCanvas().style.cursor = ''; });
 
         return () => {
-            if (viewRef.current) {
-                viewRef.current.destroy();
-                viewRef.current = null;
+            if (mapRef.current) {
+                mapRef.current.remove();
+                mapRef.current = null;
                 setMapLoaded(false);
             }
         };
     }, []);
 
+    /* ── Atualiza lotes no mapa ── */
     useEffect(() => {
-        const layer = lotesLayerRef.current;
-        const view = viewRef.current;
-        if (!layer || !view) return;
+        const map = mapRef.current;
+        if (!map || !mapLoaded) return;
 
-        layer.removeAll();
+        const features: Feature[] = [];
 
         lotes.forEach((lote) => {
             let rings: number[][][] | null = null;
@@ -183,195 +197,95 @@ export default function MapContainer({
 
             if (!rings) return;
 
-            const polygon = new Polygon({
-                rings,
-                spatialReference: { wkid: 4326 },
+            const geometry: Polygon = { type: 'Polygon', coordinates: rings };
+            features.push({
+                type: 'Feature',
+                geometry,
+                properties: { loteId: lote.id, loteType: lote.type, label: lote.label || '' },
             });
-
-            const symbolFn = SYMBOLS[lote.type] || SYMBOLS.oficial;
-            const graphic = new Graphic({
-                geometry: polygon,
-                symbol: symbolFn(),
-                attributes: { loteId: lote.id, label: lote.label },
-            });
-
-            layer.add(graphic);
-
-            // Label
-            if (lote.label) {
-                const centroid = calculateCentroid(rings[0]);
-                const labelGraphic = new Graphic({
-                    geometry: new Point({ longitude: centroid[0], latitude: centroid[1] }),
-                    symbol: new TextSymbol({
-                        text: lote.label,
-                        color: '#e2e8f0',
-                        haloColor: '#0f172a',
-                        haloSize: 1.5,
-                        font: { size: 11, weight: 'bold' },
-                    }),
-                    attributes: { loteId: lote.id },
-                });
-                layer.add(labelGraphic);
-            }
         });
-    }, [lotes, mapLoaded, drawingEnabled]);
 
+        const fc: FeatureCollection = { type: 'FeatureCollection', features };
+        const src = map.getSource('lotes-source') as maplibregl.GeoJSONSource | undefined;
+        if (src) {
+            src.setData(fc);
+            registerSourceData('lotes-source', fc);
+        }
+    }, [lotes, mapLoaded]);
+
+    /* ── Modo de desenho (MapboxDraw) ── */
     useEffect(() => {
-        // Só executa após o mapa estar totalmente pronto
-        if (!mapLoaded) return;
-        const view = viewRef.current;
-        const drawLayer = drawLayerRef.current;
-        if (!view || !drawLayer) return;
+        const map = mapRef.current;
+        if (!map || !mapLoaded) return;
 
         if (drawingEnabled) {
-            // Guard: Sketch já existe, não duplicar
-            if (sketchRef.current) return;
+            if (drawRef.current) return; // já existe
 
-            // Layer List (Gerenciador de Camadas)
-            const layerList = new LayerList({
-                view: view,
-                listItemCreatedFunction: (event) => {
-                    const item = event.item;
-                    if (item.layer && item.layer.type !== "group") {
-                        item.panel = {
-                            content: "legend",
-                            open: false
-                        } as any;
-                    }
+            const draw = new MapboxDraw({
+                displayControlsDefault: false,
+                controls: { polygon: true, trash: true },
+                defaultMode: 'draw_polygon',
+            });
+
+            // MapboxDraw.onAdd espera um mapa compatible; cast necessário por diferença de tipos
+            map.addControl(draw as any, 'top-right');
+            drawRef.current = draw;
+
+            const onCreate = (e: { features: Feature[] }) => {
+                const feature = e.features[0];
+                if (feature?.geometry?.type === 'Polygon') {
+                    const geojson = ringsToGeoJSON((feature.geometry as Polygon).coordinates[0]);
+                    onGeometryChangeRef.current?.(geojson);
                 }
-            });
-
-            const layerListExpand = new Expand({
-                view: view,
-                content: layerList,
-                group: "top-left",
-                icon: "layers",
-                expandTooltip: "Camadas",
-                expanded: false
-            });
-
-            view.ui.add(layerListExpand, "top-left");
-            layerListExpandRef.current = layerListExpand;
-
-            const sketch = new Sketch({
-                view,
-                layer: drawLayer,
-                creationMode: 'continuous',
-                availableCreateTools: ['polygon', 'rectangle', 'circle'],
-                defaultCreateOptions: { mode: 'click' },
-                visibleElements: {
-                    duplicateButton: false,
-                    settingsMenu: true,
-                    selectionTools: {
-                        "lasso-selection": true,
-                        "rectangle-selection": true,
-                    },
-                },
-            });
-
-            view.ui.add(sketch, 'top-right');
-            sketchRef.current = sketch;
-
-            // Auto-ativar modo polígono
-            sketch.create('polygon');
-
-            sketch.on('create', (event) => {
-                if (event.state === 'complete' && event.graphic?.geometry?.type === 'polygon') {
-                    const geo = webMercatorUtils.webMercatorToGeographic(
-                        event.graphic.geometry
-                    ) as __esri.Polygon;
-                    if (geo.rings && geo.rings.length > 0) {
-                        const geojson = ringsToGeoJSON(geo.rings[0]);
-                        onGeometryChangeRef.current?.(geojson);
-                    }
+            };
+            const onUpdate = (e: { features: Feature[] }) => {
+                const feature = e.features[0];
+                if (feature?.geometry?.type === 'Polygon') {
+                    const geojson = ringsToGeoJSON((feature.geometry as Polygon).coordinates[0]);
+                    onGeometryChangeRef.current?.(geojson);
                 }
-            });
+            };
 
-            sketch.on('update', (event) => {
-                if (event.state === 'complete' && event.graphics?.[0]?.geometry?.type === 'polygon') {
-                    const geo = webMercatorUtils.webMercatorToGeographic(
-                        event.graphics[0].geometry
-                    ) as __esri.Polygon;
-                    if (geo.rings && geo.rings.length > 0) {
-                        const geojson = ringsToGeoJSON(geo.rings[0]);
-                        onGeometryChangeRef.current?.(geojson);
-                    }
+            map.on('draw.create', onCreate);
+            map.on('draw.update', onUpdate);
+
+            return () => {
+                map.off('draw.create', onCreate);
+                map.off('draw.update', onUpdate);
+                if (drawRef.current && map) {
+                    map.removeControl(drawRef.current as any);
+                    drawRef.current = null;
                 }
-            });
+            };
         } else {
-            // Remove LayerList e Sketch ao sair do modo desenho
-            if (layerListExpandRef.current) {
-                view.ui.remove(layerListExpandRef.current);
-                layerListExpandRef.current.destroy();
-                layerListExpandRef.current = null;
-            }
-            if (sketchRef.current) {
-                view.ui.remove(sketchRef.current);
-                sketchRef.current.destroy();
-                sketchRef.current = null;
+            if (drawRef.current && map) {
+                map.removeControl(drawRef.current as any);
+                drawRef.current = null;
             }
         }
-
-        return () => {
-            if (layerListExpandRef.current && view?.ui) {
-                view.ui.remove(layerListExpandRef.current);
-                layerListExpandRef.current.destroy();
-                layerListExpandRef.current = null;
-            }
-            if (sketchRef.current && view?.ui) {
-                view.ui.remove(sketchRef.current);
-                sketchRef.current.destroy();
-                sketchRef.current = null;
-            }
-        };
     }, [drawingEnabled, mapLoaded]);
 
-    // ── CAD Tool Execution ──
+    /* ── Activate sketch tool from context (DesenharPanel buttons) ── */
+    useEffect(() => {
+        if (!sketchTool || !drawRef.current) return;
+        const mode = sketchTool === 'polygon' ? 'draw_polygon' :
+            sketchTool === 'rectangle' ? 'draw_polygon' :
+                'draw_polygon';
+        try { drawRef.current.changeMode(mode as any); } catch { }
+        setSketchTool(null);
+    }, [sketchTool, setSketchTool]);
+
+    /* ── CAD Tool Execution ── */
     useToolExecution({
-        view: viewRef.current,
+        map: mapRef.current,
         activeTool,
         onToolResult: setToolResult,
     });
-
-    // ── Sync toolLayers visibility/opacity with map layers ──
-    useEffect(() => {
-        const view = viewRef.current;
-        if (!view) return;
-
-        toolLayers.forEach(config => {
-            const layer = view.map?.findLayerById(config.id);
-            if (layer) {
-                layer.visible = config.visible;
-                layer.opacity = config.opacity / 100;
-            }
-        });
-    }, [toolLayers, mapLoaded]);
-
-    // ── Disable Sketch when CAD tool active ──
-    useEffect(() => {
-        const sketch = sketchRef.current;
-        if (!sketch) return;
-
-        if (activeTool) {
-            sketch.cancel();
-        }
-    }, [activeTool]);
-
-    // ── Activate sketch tool from context (DesenharPanel buttons) ──
-    useEffect(() => {
-        if (!sketchTool) return;
-        const sketch = sketchRef.current;
-        if (sketch && drawingEnabled) {
-            sketch.create(sketchTool as 'polygon' | 'rectangle' | 'circle');
-        }
-        setSketchTool(null);
-    }, [sketchTool, drawingEnabled, setSketchTool]);
 
     return (
         <div className="map-container">
             <div ref={mapDivRef} className="map-view" />
 
-            {/* Legenda flutuante */}
             {lotes.length > 0 && (
                 <div className="map-legend">
                     <div className="map-legend-title">Legenda</div>

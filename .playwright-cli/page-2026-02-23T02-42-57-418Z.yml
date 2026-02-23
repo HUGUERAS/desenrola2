@@ -1,0 +1,275 @@
+- generic [ref=e2]:
+  - generic [ref=e45]:
+    - banner [ref=e46]:
+      - generic [ref=e47]:
+        - button "Fechar sidebar" [ref=e48] [cursor=pointer]:
+          - img [ref=e49]
+        - generic [ref=e52]:
+          - img [ref=e53]
+          - generic [ref=e55]: Desenrola
+        - generic [ref=e56]: 🏠 Proprietário
+      - button "Sair" [ref=e58] [cursor=pointer]:
+        - img [ref=e59]
+        - generic [ref=e62]: Sair
+    - generic [ref=e63]:
+      - complementary [ref=e64]:
+        - navigation [ref=e65]:
+          - button "Meus Dados" [ref=e67] [cursor=pointer]:
+            - img [ref=e68]
+            - generic [ref=e71]: Meus Dados
+          - button "Desenhar Área" [ref=e73] [cursor=pointer]:
+            - img [ref=e74]
+            - generic [ref=e79]: Desenhar Área
+          - button "Confrontações" [ref=e81] [cursor=pointer]:
+            - img [ref=e82]
+            - generic [ref=e87]: Confrontações
+          - button "Documentos" [ref=e89] [cursor=pointer]:
+            - img [ref=e90]
+            - generic [ref=e93]: Documentos
+          - button "Acompanhar" [ref=e95] [cursor=pointer]:
+            - img [ref=e96]
+            - generic [ref=e99]: Acompanhar
+        - generic [ref=e101]:
+          - heading "Editor do Projeto" [level=3] [ref=e103]
+          - generic [ref=e104]:
+            - generic [ref=e105]:
+              - heading "Atalhos Rapidos (3 favoritos)" [level=4] [ref=e106]:
+                - img [ref=e107]
+                - text: Atalhos Rapidos (3 favoritos)
+              - generic [ref=e109]:
+                - generic [ref=e110]:
+                  - combobox [ref=e111]:
+                    - option "Poligono (vertices)" [selected]
+                    - option "Retangulo"
+                    - option "Circulo"
+                    - 'option "CAD: Area"'
+                    - 'option "CAD: Perimetro"'
+                    - 'option "CAD: Angulo"'
+                    - 'option "CAD: Azimute"'
+                    - 'option "CAD: Coordenadas"'
+                    - 'option "CAD: Buffer"'
+                    - 'option "CAD: Dividir"'
+                    - 'option "CAD: Unir"'
+                    - 'option "CAD: Simplificar"'
+                    - 'option "CAD: Validar"'
+                    - 'option "CAD: Fechar Gaps"'
+                    - 'option "CAD: Simplificar Top."'
+                    - 'option "CAD: Importar KML"'
+                    - 'option "CAD: Importar GeoJSON"'
+                    - 'option "CAD: Exportar GeoJSON"'
+                    - 'option "CAD: Exportar DXF"'
+                    - 'option "CAD: Validar SIGEF"'
+                    - 'option "CAD: Memorial"'
+                    - 'option "CAD: Vertices SIRGAS"'
+                    - 'option "CAD: Converter Coords"'
+                    - 'option "CAD: Add Ponto"'
+                  - button "Usar" [ref=e112] [cursor=pointer]
+                - generic [ref=e113]:
+                  - combobox [ref=e114]:
+                    - option "Poligono (vertices)"
+                    - option "Retangulo"
+                    - option "Circulo"
+                    - 'option "CAD: Area" [selected]'
+                    - 'option "CAD: Perimetro"'
+                    - 'option "CAD: Angulo"'
+                    - 'option "CAD: Azimute"'
+                    - 'option "CAD: Coordenadas"'
+                    - 'option "CAD: Buffer"'
+                    - 'option "CAD: Dividir"'
+                    - 'option "CAD: Unir"'
+                    - 'option "CAD: Simplificar"'
+                    - 'option "CAD: Validar"'
+                    - 'option "CAD: Fechar Gaps"'
+                    - 'option "CAD: Simplificar Top."'
+                    - 'option "CAD: Importar KML"'
+                    - 'option "CAD: Importar GeoJSON"'
+                    - 'option "CAD: Exportar GeoJSON"'
+                    - 'option "CAD: Exportar DXF"'
+                    - 'option "CAD: Validar SIGEF"'
+                    - 'option "CAD: Memorial"'
+                    - 'option "CAD: Vertices SIRGAS"'
+                    - 'option "CAD: Converter Coords"'
+                    - 'option "CAD: Add Ponto"'
+                  - button "Usar" [ref=e115] [cursor=pointer]
+                - generic [ref=e116]:
+                  - combobox [ref=e117]:
+                    - option "Poligono (vertices)"
+                    - option "Retangulo"
+                    - option "Circulo"
+                    - 'option "CAD: Area"'
+                    - 'option "CAD: Perimetro"'
+                    - 'option "CAD: Angulo"'
+                    - 'option "CAD: Azimute"'
+                    - 'option "CAD: Coordenadas"'
+                    - 'option "CAD: Buffer"'
+                    - 'option "CAD: Dividir"'
+                    - 'option "CAD: Unir"'
+                    - 'option "CAD: Simplificar"'
+                    - 'option "CAD: Validar" [selected]'
+                    - 'option "CAD: Fechar Gaps"'
+                    - 'option "CAD: Simplificar Top."'
+                    - 'option "CAD: Importar KML"'
+                    - 'option "CAD: Importar GeoJSON"'
+                    - 'option "CAD: Exportar GeoJSON"'
+                    - 'option "CAD: Exportar DXF"'
+                    - 'option "CAD: Validar SIGEF"'
+                    - 'option "CAD: Memorial"'
+                    - 'option "CAD: Vertices SIRGAS"'
+                    - 'option "CAD: Converter Coords"'
+                    - 'option "CAD: Add Ponto"'
+                  - button "Usar" [ref=e118] [cursor=pointer]
+            - generic [ref=e119]:
+              - button "Desenho" [ref=e120] [cursor=pointer]:
+                - img [ref=e121]
+                - text: Desenho
+              - button "CAD" [ref=e124] [cursor=pointer]:
+                - img [ref=e125]
+                - text: CAD
+              - button "Camadas" [ref=e127] [cursor=pointer]:
+                - img [ref=e128]
+                - text: Camadas
+          - generic [ref=e132]:
+            - heading "Ferramentas de Desenho" [level=4] [ref=e133]:
+              - img [ref=e134]
+              - text: Ferramentas de Desenho
+            - generic [ref=e137]:
+              - button "Poligono" [ref=e138] [cursor=pointer]:
+                - img [ref=e139]
+                - text: Poligono
+              - button "Retangulo" [ref=e141] [cursor=pointer]:
+                - img [ref=e142]
+                - text: Retangulo
+              - button "Circulo" [ref=e144] [cursor=pointer]:
+                - img [ref=e145]
+                - text: Circulo
+            - generic [ref=e147]: Clique em uma ferramenta e depois no mapa para delimitar a area.
+          - generic [ref=e148]:
+            - heading "Importar Arquivo" [level=4] [ref=e149]:
+              - img [ref=e150]
+              - text: Importar Arquivo
+            - generic [ref=e154]: Envie KML, DXF ou GeoJSON para carregar desenho.
+            - button "Selecionar Arquivo" [ref=e155] [cursor=pointer]:
+              - img [ref=e156]
+              - text: Selecionar Arquivo
+      - main [ref=e159]:
+        - generic [ref=e160]:
+          - generic [ref=e162]:
+            - application [active] [ref=e163]
+            - generic:
+              - generic:
+                - generic:
+                  - generic [ref=e165]:
+                    - generic "Mais Zoom" [ref=e166] [cursor=pointer]:
+                      - button "Mais Zoom" [ref=e168]:
+                        - img [ref=e170]
+                    - generic "Menos Zoom" [ref=e172] [cursor=pointer]:
+                      - button "Menos Zoom" [ref=e174]:
+                        - img [ref=e176]
+                  - generic "Camadas" [ref=e180] [cursor=pointer]:
+                    - generic [ref=e181]:
+                      - button "Camadas" [ref=e182]:
+                        - generic:
+                          - generic:
+                            - generic:
+                              - img
+                        - generic: Camadas
+                      - region "Camadas" [ref=e183]
+                - generic [ref=e184]:
+                  - generic:
+                    - generic [ref=e187]:
+                      - generic:
+                        - group [ref=e189]:
+                          - generic:
+                            - generic "Selecionar feição" [ref=e190] [cursor=pointer]:
+                              - generic [ref=e191]:
+                                - button "Selecionar feição" [ref=e192]:
+                                  - generic:
+                                    - generic:
+                                      - img
+                                  - generic: Selecionar feição
+                                - region "Selecionar feição" [ref=e193]
+                            - generic "Selecionar por retângulo" [ref=e194] [cursor=pointer]:
+                              - generic [ref=e195]:
+                                - button "Selecionar por retângulo" [ref=e196]:
+                                  - generic:
+                                    - generic:
+                                      - img
+                                  - generic: Selecionar por retângulo
+                                - region "Selecionar por retângulo" [ref=e197]
+                            - generic "Selecionar por laço" [ref=e198] [cursor=pointer]:
+                              - generic [ref=e199]:
+                                - button "Selecionar por laço" [ref=e200]:
+                                  - generic:
+                                    - generic:
+                                      - img
+                                  - generic: Selecionar por laço
+                                - region "Selecionar por laço" [ref=e201]
+                        - group [ref=e203]:
+                          - generic:
+                            - generic "Desenhar um polígono" [ref=e204] [cursor=pointer]:
+                              - generic [ref=e205]:
+                                - button "Desenhar um polígono" [ref=e206]:
+                                  - generic:
+                                    - generic:
+                                      - img
+                                  - generic: Desenhar um polígono
+                                - region "Desenhar um polígono" [ref=e207]
+                            - generic "Desenha um retângulo" [ref=e208] [cursor=pointer]:
+                              - generic [ref=e209]:
+                                - button "Desenha um retângulo" [ref=e210]:
+                                  - generic:
+                                    - generic:
+                                      - img
+                                  - generic: Desenha um retângulo
+                                - region "Desenha um retângulo" [ref=e211]
+                            - generic "Desenhar um círculo" [ref=e212] [cursor=pointer]:
+                              - generic [ref=e213]:
+                                - button "Desenhar um círculo" [ref=e214]:
+                                  - generic:
+                                    - generic:
+                                      - img
+                                  - generic: Desenhar um círculo
+                                - region "Desenhar um círculo" [ref=e215]
+                        - group [ref=e217]:
+                          - generic:
+                            - generic "Desfazer" [ref=e218]:
+                              - generic:
+                                - button "Desfazer" [disabled]:
+                                  - generic:
+                                    - generic:
+                                      - img
+                                  - generic: Desfazer
+                                - region "Desfazer"
+                            - generic "Refazer" [ref=e219]:
+                              - generic:
+                                - button "Refazer" [disabled]:
+                                  - generic:
+                                    - generic:
+                                      - img
+                                  - generic: Refazer
+                                - region "Refazer"
+                        - group [ref=e221]:
+                          - generic "Configurações" [ref=e222] [cursor=pointer]:
+                            - generic [ref=e223]:
+                              - button "Configurações" [ref=e224]:
+                                - generic:
+                                  - generic:
+                                    - img
+                                - generic: Configurações
+                              - region "Configurações" [ref=e225]
+                    - generic:
+                      - generic: Habilitar ajuste
+                      - generic: Guias de geometria
+                      - generic: Feição para feição
+                      - generic: Grade
+                    - generic: Habilitar todos
+          - generic: ✏️ Clique no mapa para desenhar. Duplo-clique para fechar o polígono.
+    - contentinfo [ref=e226]:
+      - generic [ref=e227]:
+        - generic [ref=e228]: SRID
+        - generic [ref=e229]: 4674 (SIRGAS 2000)
+      - generic [ref=e230]:
+        - generic [ref=e231]: Coords
+        - generic [ref=e232]: —, —
+      - generic [ref=e234]: Desenrola v1.0
+  - region "Notifications alt+T"
