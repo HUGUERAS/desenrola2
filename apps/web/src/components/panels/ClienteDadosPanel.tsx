@@ -2,14 +2,25 @@
  * ClienteDadosPanel — Visualização dos dados enviados pelo cliente via magic link
  * Usado pelo topógrafo para revisar o que o cliente preencheu.
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useApp } from '../../pages/AppShell';
-import { User, Copy, ExternalLink, MapPin, Hash, Phone, Mail, FileText, CheckCircle } from 'lucide-react';
+import apiClient from '../../services/api';
+import { User, Copy, ExternalLink, MapPin, Hash, Phone, Mail, FileText, CheckCircle, Loader2 } from 'lucide-react';
 
 export default function ClienteDadosPanel() {
-    const { loteAtual, setPanel } = useApp();
+    const { loteAtual, setLoteAtual, setPanel } = useApp();
     const [copied, setCopied] = useState(false);
+    const [loadingFresh, setLoadingFresh] = useState(false);
+
+    // Sempre busca dados frescos quando o painel abre (cliente pode ter preenchido depois)
+    useEffect(() => {
+        if (!loteAtual?.id) return;
+        setLoadingFresh(true);
+        apiClient.getLote(loteAtual.id).then(res => {
+            if (res.data) setLoteAtual(res.data as any);
+        }).finally(() => setLoadingFresh(false));
+    }, [loteAtual?.id]);
 
     if (!loteAtual) {
         return (
@@ -57,7 +68,7 @@ export default function ClienteDadosPanel() {
             <div className="panel-header">
                 <div>
                     <button className="panel-link" onClick={() => setPanel('lotes')}>← Lotes</button>
-                    <h3>👤 Dados do Cliente</h3>
+                    <h3>👤 Dados do Cliente {loadingFresh && <Loader2 size={14} className="spin" style={{ verticalAlign: 'middle', opacity: 0.5 }} />}</h3>
                 </div>
             </div>
 
