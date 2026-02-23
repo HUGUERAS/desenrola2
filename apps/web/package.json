@@ -21,7 +21,7 @@
         "@turf/turf": "^7.3.4",
         "clsx": "^2.1.1",
         "lucide-react": "^0.453.0",
-        "maplibre-gl": "^5.18.0",
+        "maplibre-gl": "4.7.1",
         "proj4": "^2.20.2",
         "react": "^19.0.0",
         "react-dom": "^19.0.0",
