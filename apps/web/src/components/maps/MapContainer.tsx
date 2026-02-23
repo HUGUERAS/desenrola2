@@ -63,6 +63,18 @@ export default function MapContainer({
     const mapRef = useRef<maplibregl.Map | null>(null);
     const drawRef = useRef<InstanceType<typeof MapboxDraw> | null>(null);
     const [mapLoaded, setMapLoaded] = useState(false);
+    const [basemap, setBasemap] = useState<'osm' | 'satellite'>('osm');
+
+    const toggleBasemap = () => {
+        const map = mapRef.current;
+        if (!map || !mapLoaded) return;
+        const next = basemap === 'osm' ? 'satellite' : 'osm';
+        const tileUrl = next === 'satellite'
+            ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+            : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+        (map.getSource('osm') as maplibregl.RasterTileSource)?.setTiles([tileUrl]);
+        setBasemap(next);
+    };
 
     const onLoteClickRef = useRef(onLoteClick);
     onLoteClickRef.current = onLoteClick;
@@ -335,8 +347,11 @@ export default function MapContainer({
         <div className="map-container">
             <div ref={mapDivRef} className="map-view" />
 
-            {lotes.length > 0 && (
-                <div className="map-legend">
+            <div className="map-basemap-toggle" onClick={toggleBasemap} title={basemap === 'osm' ? 'Mudar para Satélite' : 'Mudar para Mapa'}>
+                {basemap === 'osm' ? '🛰️ Satélite' : '🗺️ Mapa'}
+            </div>
+
+            <div className="map-legend">
                     <div className="map-legend-title">Legenda</div>
                     <div className="map-legend-item">
                         <span className="map-legend-swatch map-legend-swatch--ativo" />
@@ -359,7 +374,6 @@ export default function MapContainer({
                         Sobreposição
                     </div>
                 </div>
-            )}
 
             {drawingEnabled && (
                 <div className="map-draw-hint">
