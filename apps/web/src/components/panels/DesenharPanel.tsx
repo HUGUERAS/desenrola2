@@ -65,6 +65,7 @@ export default function DesenharPanel() {
         handleSaveDrawing,
         mapGeometries,
         setSketchTool,
+        setMapZoomTo,
         activeTool,
         setActiveTool,
         activeToolCategory,
@@ -210,6 +211,7 @@ export default function DesenharPanel() {
             }
 
             handleMapDrawingChange(geojson);
+            setMapZoomTo(geojson);
             setUploadResult({ ok: true, msg: `Arquivo "${file.name}" importado com sucesso.` });
         } catch {
             setUploadResult({ ok: false, msg: 'Erro ao processar arquivo.' });

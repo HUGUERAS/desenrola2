@@ -44,6 +44,7 @@ interface AppContextValue extends AppState {
     updateToolLayer: (layer: LayerConfig) => void;
     removeToolLayer: (layerId: string) => void;
     setSketchTool: (tool: string | null) => void;
+    setMapZoomTo: (geojson: Record<string, any> | null) => void;
     refreshUser: () => Promise<void>;
     logout: () => void;
 }
@@ -184,6 +185,7 @@ export default function AppShell() {
             toolLayers: removeToolLayer(prev.toolLayers, layerId),
         })),
         setSketchTool: (tool) => setState((prev) => ({ ...prev, sketchTool: tool })),
+        setMapZoomTo: (geojson) => setState((prev) => ({ ...prev, mapZoomTo: geojson })),
         refreshUser: initUser,
         logout: async () => {
             await supabase.auth.signOut();
@@ -206,6 +208,7 @@ export default function AppShell() {
                         <MapContainer
                             lotes={state.mapGeometries}
                             drawingEnabled={state.panel === 'desenhar'}
+                            zoomTo={state.mapZoomTo}
                             onGeometryChange={handleMapDrawingChange}
                             onLoteClick={async (id) => {
                                 const fallback = state.mapGeometries.find((l) => l.id === id);

@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import type { Polygon, Feature, FeatureCollection } from 'geojson';
+import { bbox } from '@turf/turf';
 import { useApp } from '../../pages/AppShell';
 import { wktToRings, calculateCentroid, geoJSONToRings, ringsToGeoJSON } from '../../lib/geo-utils';
 import { useToolExecution } from '../../hooks/useToolExecution';
@@ -26,6 +27,7 @@ interface MapContainerProps {
     drawingEnabled?: boolean;
     onGeometryChange?: (geojson: Record<string, any>) => void;
     onLoteClick?: (loteId: number) => void;
+    zoomTo?: Record<string, any> | null;
 }
 
 /* ── Cores por tipo (fill, line) ── */
@@ -57,6 +59,7 @@ export default function MapContainer({
     drawingEnabled = false,
     onGeometryChange,
     onLoteClick,
+    zoomTo,
 }: MapContainerProps) {
     const { setCursorCoords, activeTool, setToolResult, sketchTool, setSketchTool } = useApp();
     const mapDivRef = useRef<HTMLDivElement>(null);
@@ -335,6 +338,16 @@ export default function MapContainer({
         try { drawRef.current.changeMode(mode as any); } catch { }
         setSketchTool(null);
     }, [sketchTool, setSketchTool]);
+
+    /* ── Zoom para geometria importada ── */
+    useEffect(() => {
+        const map = mapRef.current;
+        if (!map || !mapLoaded || !zoomTo || !Object.keys(zoomTo).length) return;
+        try {
+            const [minLng, minLat, maxLng, maxLat] = bbox(zoomTo as any);
+            map.fitBounds([[minLng, minLat], [maxLng, maxLat]], { padding: 60, maxZoom: 18, duration: 800 });
+        } catch { }
+    }, [zoomTo, mapLoaded]);
 
     /* ── CAD Tool Execution ── */
     useToolExecution({

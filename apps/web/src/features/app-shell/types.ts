@@ -62,6 +62,7 @@ export interface AppState {
     toolResult: ToolResult | null;
     toolLayers: LayerConfig[];
     sketchTool: string | null;
+    mapZoomTo: Record<string, any> | null;
 }
 
 export const defaultToolLayers: LayerConfig[] = [
@@ -81,5 +82,6 @@ export const initialAppState: AppState = {
     activeToolCategory: 'medicao',
     toolResult: null,
     sketchTool: null,
+    mapZoomTo: null,
     toolLayers: defaultToolLayers,
 };
