@@ -269,6 +269,8 @@ export default function MapContainer({
                 if (feature?.geometry?.type === 'Polygon') {
                     const geojson = ringsToGeoJSON((feature.geometry as Polygon).coordinates[0]);
                     onGeometryChangeRef.current?.(geojson);
+                    // Após criar: vai para simple_select para que o usuário possa mover/apagar
+                    try { draw.changeMode('simple_select', { featureIds: [feature.id as string] }); } catch { }
                 }
             };
             const onUpdate = (e: { features: Feature[] }) => {
@@ -278,13 +280,20 @@ export default function MapContainer({
                     onGeometryChangeRef.current?.(geojson);
                 }
             };
+            const onDelete = () => {
+                // Notifica o pai que a geometria foi removida; volta ao modo de desenho
+                onGeometryChangeRef.current?.({});
+                try { draw.changeMode('draw_polygon'); } catch { }
+            };
 
             map.on('draw.create', onCreate);
             map.on('draw.update', onUpdate);
+            map.on('draw.delete', onDelete);
 
             return () => {
                 map.off('draw.create', onCreate);
                 map.off('draw.update', onUpdate);
+                map.off('draw.delete', onDelete);
                 if (drawRef.current && map) {
                     map.removeControl(drawRef.current as any);
                     drawRef.current = null;
@@ -347,7 +356,7 @@ export default function MapContainer({
 
             {drawingEnabled && (
                 <div className="map-draw-hint">
-                    ✏️ Clique no mapa para desenhar. Duplo-clique para fechar o polígono.
+                    ✏️ Clique para desenhar · Duplo-clique para fechar · Selecione e use 🗑️ ou Delete para apagar
                 </div>
             )}
         </div>
