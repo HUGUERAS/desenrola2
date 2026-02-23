@@ -68,3 +68,5 @@ tmpclaude-*-cwd
 **/tmpclaude-*-cwd
 nul
 desenrola/
+
+.playwright-cli/
