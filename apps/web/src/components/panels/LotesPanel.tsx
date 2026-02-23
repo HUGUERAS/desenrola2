@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { useApp } from '../../pages/AppShell';
 import apiClient from '../../services/api';
 import { getStatusColor, LOTE_STATUS_COLOR } from '../../features/app-shell/status';
+import { mapUnknownLotesToGeometries } from '../../features/app-shell/utils';
 import { Layers, Plus, ArrowLeft, Loader2, Copy, ExternalLink, User } from 'lucide-react';
 import { formatCPF, formatPhone } from '../../lib/format-utils';
 
@@ -19,7 +20,7 @@ interface Lote {
 }
 
 export default function LotesPanel() {
-    const { projetoAtual, setLoteAtual, setPanel } = useApp();
+    const { projetoAtual, setLoteAtual, setPanel, setMapGeometries } = useApp();
     const [lotes, setLotes] = useState<Lote[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -38,8 +39,11 @@ export default function LotesPanel() {
         setError('');
         try {
             const res = await apiClient.getLotes(projetoAtual.id);
-            if (res.data) setLotes(res.data as unknown as Lote[]);
-            else setError(res.error || 'Erro ao carregar');
+            if (res.data) {
+                setLotes(res.data as unknown as Lote[]);
+                // Atualiza o mapa com as geometrias dos lotes (inclui desenhos dos clientes)
+                setMapGeometries(mapUnknownLotesToGeometries(res.data as unknown[]));
+            } else setError(res.error || 'Erro ao carregar');
         } catch {
             setError('Erro de conexão');
         } finally {

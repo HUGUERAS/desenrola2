@@ -6,10 +6,12 @@ import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useApp } from '../../pages/AppShell';
 import apiClient from '../../services/api';
+import { upsertGeometry } from '../../features/app-shell/utils';
+import type { LoteGeometry } from '../maps/MapContainer';
 import { User, Copy, ExternalLink, MapPin, Hash, Phone, Mail, FileText, CheckCircle, Loader2 } from 'lucide-react';
 
 export default function ClienteDadosPanel() {
-    const { loteAtual, setLoteAtual, setPanel } = useApp();
+    const { loteAtual, setLoteAtual, setPanel, mapGeometries, setMapGeometries } = useApp();
     const [copied, setCopied] = useState(false);
     const [loadingFresh, setLoadingFresh] = useState(false);
 
@@ -18,7 +20,20 @@ export default function ClienteDadosPanel() {
         if (!loteAtual?.id) return;
         setLoadingFresh(true);
         apiClient.getLote(loteAtual.id).then(res => {
-            if (res.data) setLoteAtual(res.data as any);
+            if (res.data) {
+                const fresh = res.data as any;
+                setLoteAtual(fresh);
+                // Atualiza geometria no mapa se o cliente enviou um desenho
+                if (fresh.geojson) {
+                    const geom: LoteGeometry = {
+                        id: fresh.id,
+                        geojson: fresh.geojson,
+                        label: fresh.nome_cliente,
+                        type: fresh.status === 'APROVADO' ? 'oficial' : 'rascunho',
+                    };
+                    setMapGeometries(upsertGeometry(mapGeometries, geom));
+                }
+            }
         }).finally(() => setLoadingFresh(false));
     }, [loteAtual?.id]);
 
