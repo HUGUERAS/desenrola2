@@ -37,6 +37,21 @@ const TYPE_COLORS: Record<string, { fill: string; line: string; opacity: number 
     ativo: { fill: '#3b82f6', line: '#3b82f6', opacity: 0.3 },
 };
 
+/* ── Fix: MapboxDraw + MapLibre dasharray compatibility ── */
+// MapboxDraw usa arrays diretos ([0.2, 2]) dentro de expressões `case`.
+// MapLibre exige ["literal", [0.2, 2]]. Percorre recursivamente a expressão e wrapa.
+function fixDasharray(expr: unknown): unknown {
+    if (Array.isArray(expr)) {
+        // É um array de números direto (ex: [0.2, 2]) — wrapa com literal
+        if (expr.length > 0 && typeof expr[0] === 'number') {
+            return ['literal', expr];
+        }
+        // É uma expressão MapLibre ([operator, ...args]) — percorre recursivamente
+        return expr.map(fixDasharray);
+    }
+    return expr;
+}
+
 export default function MapContainer({
     lotes = [],
     drawingEnabled = false,
@@ -80,6 +95,23 @@ export default function MapContainer({
         });
 
         map.addControl(new maplibregl.NavigationControl(), 'top-left');
+
+        // Fix de compatibilidade: MapboxDraw usa line-dasharray com arrays diretos
+        // em expressões `case`. MapLibre exige ["literal", [...]].
+        // Monkey-patch addLayer para corrigir automaticamente antes de passar ao MapLibre.
+        const origAddLayer = map.addLayer.bind(map);
+        (map as any).addLayer = (layer: any, before?: string) => {
+            if (layer?.paint?.['line-dasharray']) {
+                layer = {
+                    ...layer,
+                    paint: {
+                        ...layer.paint,
+                        'line-dasharray': fixDasharray(layer.paint['line-dasharray']),
+                    },
+                };
+            }
+            return origAddLayer(layer, before);
+        };
 
         map.on('load', () => {
             // Fonte de lotes (preenchida depois)
@@ -221,33 +253,11 @@ export default function MapContainer({
             if (drawRef.current) return; // já existe
 
             // Fix de compatibilidade MapboxDraw + MapLibre:
-            // MapLibre exige ["literal", [...]] para line-dasharray em expressões.
-            // O theme padrão do Draw usa arrays diretos e causa erros de validação.
-            const fixedStyles = [
-                { id: 'gl-draw-polygon-fill-inactive', type: 'fill', filter: ['all', ['==', 'active', 'false'], ['==', '$type', 'Polygon'], ['!=', 'mode', 'static']], paint: { 'fill-color': '#3bb2d0', 'fill-outline-color': '#3bb2d0', 'fill-opacity': 0.1 } },
-                { id: 'gl-draw-polygon-fill-active', type: 'fill', filter: ['all', ['==', 'active', 'true'], ['==', '$type', 'Polygon']], paint: { 'fill-color': '#fbb03b', 'fill-outline-color': '#fbb03b', 'fill-opacity': 0.1 } },
-                { id: 'gl-draw-polygon-midpoint', type: 'circle', filter: ['all', ['==', '$type', 'Point'], ['==', 'meta', 'midpoint']], paint: { 'circle-radius': 3, 'circle-color': '#fbb03b' } },
-                { id: 'gl-draw-polygon-stroke-inactive', type: 'line', filter: ['all', ['==', 'active', 'false'], ['==', '$type', 'Polygon'], ['!=', 'mode', 'static']], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#3bb2d0', 'line-width': 2 } },
-                { id: 'gl-draw-polygon-stroke-active', type: 'line', filter: ['all', ['==', 'active', 'true'], ['==', '$type', 'Polygon']], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#fbb03b', 'line-dasharray': ['literal', [0.2, 2]], 'line-width': 2 } },
-                { id: 'gl-draw-line-inactive', type: 'line', filter: ['all', ['==', 'active', 'false'], ['==', '$type', 'LineString'], ['!=', 'mode', 'static']], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#3bb2d0', 'line-width': 2 } },
-                { id: 'gl-draw-line-active', type: 'line', filter: ['all', ['==', '$type', 'LineString'], ['==', 'active', 'true']], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#fbb03b', 'line-dasharray': ['literal', [0.2, 2]], 'line-width': 2 } },
-                { id: 'gl-draw-polygon-and-line-vertex-stroke-inactive', type: 'circle', filter: ['all', ['==', 'meta', 'vertex'], ['==', '$type', 'Point'], ['!=', 'mode', 'static']], paint: { 'circle-radius': 5, 'circle-color': '#fff' } },
-                { id: 'gl-draw-polygon-and-line-vertex-inactive', type: 'circle', filter: ['all', ['==', 'meta', 'vertex'], ['==', '$type', 'Point'], ['!=', 'mode', 'static']], paint: { 'circle-radius': 3, 'circle-color': '#fbb03b' } },
-                { id: 'gl-draw-point-point-stroke-inactive', type: 'circle', filter: ['all', ['==', 'active', 'false'], ['==', '$type', 'Point'], ['==', 'meta', 'feature'], ['!=', 'mode', 'static']], paint: { 'circle-radius': 5, 'circle-opacity': 1, 'circle-color': '#fff' } },
-                { id: 'gl-draw-point-inactive', type: 'circle', filter: ['all', ['==', 'active', 'false'], ['==', '$type', 'Point'], ['==', 'meta', 'feature'], ['!=', 'mode', 'static']], paint: { 'circle-radius': 3, 'circle-color': '#3bb2d0' } },
-                { id: 'gl-draw-point-stroke-active', type: 'circle', filter: ['all', ['==', '$type', 'Point'], ['==', 'active', 'true'], ['!=', 'meta', 'midpoint']], paint: { 'circle-radius': 7, 'circle-color': '#fff' } },
-                { id: 'gl-draw-point-active', type: 'circle', filter: ['all', ['==', '$type', 'Point'], ['!=', 'meta', 'midpoint'], ['==', 'active', 'true']], paint: { 'circle-radius': 5, 'circle-color': '#fbb03b' } },
-                { id: 'gl-draw-polygon-fill-static', type: 'fill', filter: ['all', ['==', 'mode', 'static'], ['==', '$type', 'Polygon']], paint: { 'fill-color': '#404040', 'fill-outline-color': '#404040', 'fill-opacity': 0.1 } },
-                { id: 'gl-draw-polygon-stroke-static', type: 'line', filter: ['all', ['==', 'mode', 'static'], ['==', '$type', 'Polygon']], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#404040', 'line-width': 2 } },
-                { id: 'gl-draw-line-static', type: 'line', filter: ['all', ['==', 'mode', 'static'], ['==', '$type', 'LineString']], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#404040', 'line-width': 2 } },
-                { id: 'gl-draw-point-static', type: 'circle', filter: ['all', ['==', 'mode', 'static'], ['==', '$type', 'Point']], paint: { 'circle-radius': 5, 'circle-color': '#404040' } },
-            ];
-
+            // O monkey-patch em addLayer já corrige automaticamente os dasharray.
             const draw = new MapboxDraw({
                 displayControlsDefault: false,
                 controls: { polygon: true, trash: true },
                 defaultMode: 'draw_polygon',
-                styles: fixedStyles as any,
             });
 
             // MapboxDraw.onAdd espera um mapa compatible; cast necessário por diferença de tipos
