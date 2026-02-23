@@ -110,6 +110,17 @@
     color: white;
 }
 
+.panel-btn--danger {
+    background: var(--error);
+    color: white;
+    border-color: transparent;
+}
+
+.panel-btn--danger:hover {
+    background: color-mix(in srgb, var(--error) 88%, black);
+    color: white;
+}
+
 .panel-btn--success {
     background: var(--success);
     color: white;

@@ -19,6 +19,7 @@ import {
     EyeOff,
     X,
     CheckCircle2,
+    Trash2,
 } from 'lucide-react';
 import { useApp } from '../../pages/AppShell';
 import apiClient from '../../services/api';
@@ -312,12 +313,19 @@ export default function DesenharPanel() {
                             title="Desenhar poligono por vertices"
                         >
                             <Pentagon size={16} />
-                            <span style={{ marginLeft: 6 }}>Desenhar poligono</span>
+                            <span style={{ marginLeft: 6 }}>Desenhar polígono</span>
+                        </button>
+                        <button
+                            className="panel-btn panel-btn--danger panel-btn--full"
+                            onClick={() => setSketchTool('clear')}
+                            title="Apagar o desenho atual do mapa"
+                            style={{ marginTop: 6 }}
+                        >
+                            <Trash2 size={16} />
+                            <span style={{ marginLeft: 6 }}>Limpar desenho</span>
                         </button>
                         <div className="panel-info">
-                            {loteAtual
-                                ? 'Poligono por vertices e o principal. Clique no mapa para inserir vertices e duplo-clique para fechar.'
-                                : 'Clique em uma ferramenta e depois no mapa para delimitar a area.'}
+                            Clique no mapa para inserir vértices. Duplo-clique para fechar o polígono.
                         </div>
                     </div>
 

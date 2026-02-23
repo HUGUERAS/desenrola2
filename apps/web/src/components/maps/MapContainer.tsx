@@ -256,7 +256,7 @@ export default function MapContainer({
             // O monkey-patch em addLayer já corrige automaticamente os dasharray.
             const draw = new MapboxDraw({
                 displayControlsDefault: false,
-                controls: { polygon: true, trash: true },
+                controls: {},
                 defaultMode: 'draw_polygon',
             });
 
@@ -310,9 +310,16 @@ export default function MapContainer({
     /* ── Activate sketch tool from context (DesenharPanel buttons) ── */
     useEffect(() => {
         if (!sketchTool || !drawRef.current) return;
-        const mode = sketchTool === 'polygon' ? 'draw_polygon' :
-            sketchTool === 'rectangle' ? 'draw_polygon' :
-                'draw_polygon';
+        if (sketchTool === 'clear') {
+            try {
+                drawRef.current.deleteAll();
+                onGeometryChangeRef.current?.({});
+                drawRef.current.changeMode('draw_polygon' as any);
+            } catch { }
+            setSketchTool(null);
+            return;
+        }
+        const mode = 'draw_polygon';
         try { drawRef.current.changeMode(mode as any); } catch { }
         setSketchTool(null);
     }, [sketchTool, setSketchTool]);
@@ -356,7 +363,7 @@ export default function MapContainer({
 
             {drawingEnabled && (
                 <div className="map-draw-hint">
-                    ✏️ Clique para desenhar · Duplo-clique para fechar · Selecione e use 🗑️ ou Delete para apagar
+                    ✏️ Clique para desenhar · Duplo-clique para fechar o polígono
                 </div>
             )}
         </div>
