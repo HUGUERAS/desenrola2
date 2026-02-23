@@ -272,7 +272,7 @@ export default function MapContainer({
             const draw = new MapboxDraw({
                 displayControlsDefault: false,
                 controls: {},
-                defaultMode: 'draw_polygon',
+                defaultMode: 'simple_select',
             });
 
             // MapboxDraw.onAdd espera um mapa compatible; cast necessário por diferença de tipos
@@ -365,28 +365,28 @@ export default function MapContainer({
             </div>
 
             <div className="map-legend">
-                    <div className="map-legend-title">Legenda</div>
-                    <div className="map-legend-item">
-                        <span className="map-legend-swatch map-legend-swatch--ativo" />
-                        Lote Ativo
-                    </div>
-                    <div className="map-legend-item">
-                        <span className="map-legend-swatch map-legend-swatch--oficial" />
-                        Oficial
-                    </div>
-                    <div className="map-legend-item">
-                        <span className="map-legend-swatch map-legend-swatch--rascunho" />
-                        Rascunho
-                    </div>
-                    <div className="map-legend-item">
-                        <span className="map-legend-swatch map-legend-swatch--vizinho" />
-                        Vizinho
-                    </div>
-                    <div className="map-legend-item">
-                        <span className="map-legend-swatch map-legend-swatch--sobreposicao" />
-                        Sobreposição
-                    </div>
+                <div className="map-legend-title">Legenda</div>
+                <div className="map-legend-item">
+                    <span className="map-legend-swatch map-legend-swatch--ativo" />
+                    Lote Ativo
                 </div>
+                <div className="map-legend-item">
+                    <span className="map-legend-swatch map-legend-swatch--oficial" />
+                    Oficial
+                </div>
+                <div className="map-legend-item">
+                    <span className="map-legend-swatch map-legend-swatch--rascunho" />
+                    Rascunho
+                </div>
+                <div className="map-legend-item">
+                    <span className="map-legend-swatch map-legend-swatch--vizinho" />
+                    Vizinho
+                </div>
+                <div className="map-legend-item">
+                    <span className="map-legend-swatch map-legend-swatch--sobreposicao" />
+                    Sobreposição
+                </div>
+            </div>
 
             {drawingEnabled && (
                 <div className="map-draw-hint">
