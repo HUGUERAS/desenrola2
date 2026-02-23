@@ -100,6 +100,7 @@ export default function MapContainer({
                         type: 'raster',
                         tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
                         tileSize: 256,
+                        maxzoom: 19,
                         attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
                     },
                 },
