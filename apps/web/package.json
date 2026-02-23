@@ -15,7 +15,6 @@
         "test:e2e:report": "playwright show-report"
     },
     "dependencies": {
-        "@arcgis/core": "4.34.8",
         "@mapbox/mapbox-gl-draw": "^1.5.1",
         "@supabase/supabase-js": "^2.45.4",
         "@turf/turf": "^7.3.4",
