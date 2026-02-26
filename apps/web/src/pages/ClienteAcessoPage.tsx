@@ -241,8 +241,11 @@ function DocumentoOCR({ onFieldsExtracted }: {
         setStatus('processing');
         setProgress(0);
         try {
-            const { extractTextFromImage, parseFieldsFromText } = await import('../lib/ocr-extractor');
-            const text = await extractTextFromImage(file, setProgress);
+            const { extractTextFromImage, extractTextFromPDF, parseFieldsFromText } = await import('../lib/ocr-extractor');
+            const isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+            const text = isPDF
+                ? await extractTextFromPDF(file, setProgress)
+                : await extractTextFromImage(file, setProgress);
             const fields = parseFieldsFromText(text);
             const hasFields = Object.values(fields).some(v => v);
             if (hasFields) {
@@ -264,10 +267,10 @@ function DocumentoOCR({ onFieldsExtracted }: {
             border: `1.5px dashed ${status === 'done' ? '#86efac' : status === 'error' ? '#fca5a5' : '#93c5fd'}`,
         }}>
             <p style={{ fontWeight: 600, fontSize: 14, margin: '0 0 2px' }}>
-                Preencher com foto de documento
+                Preencher com foto ou PDF de documento
             </p>
             <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 12px' }}>
-                Fotografe sua escritura, RG ou CPF para preencher automaticamente
+                Envie foto ou PDF de sua escritura, RG ou CPF para preencher automaticamente
             </p>
 
             {status === 'processing' ? (
@@ -291,13 +294,13 @@ function DocumentoOCR({ onFieldsExtracted }: {
                     <span style={{ color: '#10b981', fontWeight: 700 }}>Campos preenchidos</span>
                     <label style={{ fontSize: 12, color: '#3b82f6', cursor: 'pointer', textDecoration: 'underline' }}>
                         Enviar outro
-                        <input type="file" accept="image/jpeg,image/png,image/jpg" onChange={handleFile} style={{ display: 'none' }} />
+                        <input type="file" accept="image/jpeg,image/png,image/jpg,application/pdf,.pdf" onChange={handleFile} style={{ display: 'none' }} />
                     </label>
                 </div>
             ) : status === 'error' ? (
                 <div>
                     <p style={{ color: '#ef4444', fontSize: 13, margin: '0 0 8px' }}>
-                        Nenhum dado encontrado. Tente outra foto com melhor qualidade.
+                        Nenhum dado encontrado. Tente outro arquivo com melhor qualidade.
                     </p>
                     <label style={{
                         display: 'inline-flex', alignItems: 'center', gap: 8,
@@ -305,7 +308,7 @@ function DocumentoOCR({ onFieldsExtracted }: {
                         borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600,
                     }}>
                         Tentar novamente
-                        <input type="file" accept="image/jpeg,image/png,image/jpg" onChange={handleFile} style={{ display: 'none' }} />
+                        <input type="file" accept="image/jpeg,image/png,image/jpg,application/pdf,.pdf" onChange={handleFile} style={{ display: 'none' }} />
                     </label>
                 </div>
             ) : (
@@ -314,8 +317,8 @@ function DocumentoOCR({ onFieldsExtracted }: {
                     padding: '9px 16px', background: '#3b82f6', color: '#fff',
                     borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600,
                 }}>
-                    Enviar foto
-                    <input type="file" accept="image/jpeg,image/png,image/jpg" onChange={handleFile} style={{ display: 'none' }} />
+                    Enviar foto ou PDF
+                    <input type="file" accept="image/jpeg,image/png,image/jpg,application/pdf,.pdf" onChange={handleFile} style={{ display: 'none' }} />
                 </label>
             )}
         </div>

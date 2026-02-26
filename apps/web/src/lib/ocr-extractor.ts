@@ -43,6 +43,60 @@ export async function extractTextFromImage(
 }
 
 /**
+ * Extrai texto de um PDF (lazy-loaded pdfjs-dist).
+ * Estratégia dupla: tenta text layer primeiro (PDF digital);
+ * se texto insuficiente, renderiza página em canvas e usa Tesseract OCR.
+ */
+export async function extractTextFromPDF(
+    file: File,
+    onProgress?: (pct: number) => void,
+): Promise<string> {
+    const pdfjsLib = await import('pdfjs-dist');
+    pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+        'pdfjs-dist/build/pdf.worker.min.mjs',
+        import.meta.url,
+    ).toString();
+
+    const buffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+    let allText = '';
+
+    for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+
+        // Tentar text layer (PDF digital — rápido)
+        const content = await page.getTextContent();
+        const pageText = content.items
+            .map(item => ('str' in item ? item.str : ''))
+            .join(' ');
+
+        if (pageText.replace(/\s/g, '').length > 20) {
+            allText += pageText + '\n';
+            onProgress?.(Math.round((i / pdf.numPages) * 100));
+        } else {
+            // PDF escaneado → renderiza canvas → Tesseract OCR
+            const viewport = page.getViewport({ scale: 2 });
+            const canvas = document.createElement('canvas');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            await page.render({ canvas, viewport }).promise;
+
+            const blob = await new Promise<Blob>(resolve =>
+                canvas.toBlob(b => resolve(b!), 'image/png'),
+            );
+            const imgFile = new File([blob], 'page.png', { type: 'image/png' });
+            const baseProgress = Math.round(((i - 1) / pdf.numPages) * 100);
+            const pageRange = Math.round(100 / pdf.numPages);
+            const ocrText = await extractTextFromImage(imgFile, (p) => {
+                onProgress?.(baseProgress + Math.round((p / 100) * pageRange));
+            });
+            allText += ocrText + '\n';
+        }
+    }
+    return allText;
+}
+
+/**
  * Extrai campos de documentos brasileiros a partir de texto OCR
  */
 export function parseFieldsFromText(text: string): ExtractedFields {
