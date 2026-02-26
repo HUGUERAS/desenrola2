@@ -34,13 +34,11 @@ export type ToolId =
   | 'importar-csv'
   | 'exportar-geojson'
   | 'exportar-dxf'
-  // SIGEF + Coordenadas (6)
+  // SIGEF + Coordenadas (4)
   | 'sigef-validar'
   | 'sigef-memorial'
   | 'sigef-vertices'
-  | 'renomear-vertices'
-  | 'converter-coords'
-  | 'adicionar-ponto';
+  | 'renomear-vertices';
 
 export interface ToolConfig {
   id: ToolId;
@@ -105,8 +103,6 @@ export const TOOL_DEFINITIONS: Record<ToolCategory, ToolConfig[]> = {
     { id: 'sigef-memorial', label: 'Memorial', icon: 'file-text', description: 'Gerar memorial descritivo', shortcut: 'M', category: 'sigef' },
     { id: 'sigef-vertices', label: 'Vertices SIRGAS', icon: 'map-pin', description: 'Exportar vertices em SIRGAS 2000', shortcut: 'R', category: 'sigef' },
     { id: 'renomear-vertices', label: 'Renomear Vert.', icon: 'tag', description: 'Clicar em vertice para renomear (ex: P1, MM-01)', shortcut: 'N', category: 'sigef' },
-    { id: 'converter-coords', label: 'Converter Coords', icon: 'repeat', description: 'Converter UTM / Geografico / DMS', shortcut: 'C', category: 'sigef' },
-    { id: 'adicionar-ponto', label: 'Add Ponto', icon: 'plus-circle', description: 'Adicionar ponto por coordenadas', shortcut: 'P', category: 'sigef' },
   ],
 };
 

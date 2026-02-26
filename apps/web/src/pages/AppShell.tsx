@@ -119,24 +119,17 @@ export default function AppShell() {
         initUser();
     }, [initUser]);
 
-    // 1. Atualiza apenas o mapa (local)
+    // 1. Atualiza apenas o mapa (local) — sem auto-save em background
     const handleMapDrawingChange = useCallback((geojson: Record<string, any>) => {
-        // Atualiza a geometria temporária (id: 0) ou a do lote atual no estado local
-        const targetId = state.loteAtual?.id ?? 0;
-
         setState(prev => {
+            const targetId = prev.loteAtual?.id ?? 0;
             const newGeom: LoteGeometry = buildDrawingGeometry(targetId, geojson, prev.loteAtual?.nome_cliente);
             return {
                 ...prev,
                 mapGeometries: upsertGeometry(prev.mapGeometries, newGeom)
             };
         });
-
-        // Se já for um lote existente, podemos salvar o ajuste automaticamente em background
-        if (state.loteAtual) {
-            apiClient.updateLoteGeometria(state.loteAtual.id, geojson).catch(console.error);
-        }
-    }, [state.loteAtual]);
+    }, []);
 
     // 2. Salva permanentemente no banco (Manual via botão)
     const handleSaveDrawing = useCallback(async (geojson: Record<string, any>) => {
@@ -158,14 +151,12 @@ export default function AppShell() {
                 loteAtual: novoLote,
                 mapGeometries: replaceDraftGeometry(prev.mapGeometries, novaGeom),
             }));
-            // Avisa o App Shell sobre a nova geometria
-            handleMapDrawingChange(geojson);
             return { ok: true };
         } else {
             console.error('Erro ao salvar:', res.error);
             throw new Error(res.error || 'Falha ao salvar');
         }
-    }, [state.role, handleMapDrawingChange]);
+    }, [state.role]);
 
     const handleGeometryChange = handleMapDrawingChange; // Para compatibilidade temporária se necessário
 

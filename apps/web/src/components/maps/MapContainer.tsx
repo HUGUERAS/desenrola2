@@ -61,7 +61,7 @@ export default function MapContainer({
     onLoteClick,
     zoomTo,
 }: MapContainerProps) {
-    const { setCursorCoords, activeTool, setToolResult, sketchTool, setSketchTool } = useApp();
+    const { setCursorCoords, activeTool, setToolResult, sketchTool, setSketchTool, loteAtual } = useApp();
     const mapDivRef = useRef<HTMLDivElement>(null);
     const mapRef = useRef<maplibregl.Map | null>(null);
     const drawRef = useRef<InstanceType<typeof MapboxDraw> | null>(null);
@@ -196,6 +196,31 @@ export default function MapContainer({
                 },
             });
 
+            // Camada de highlight do lote selecionado
+            map.addSource('lote-highlight-source', {
+                type: 'geojson',
+                data: { type: 'FeatureCollection', features: [] } as FeatureCollection,
+            });
+            map.addLayer({
+                id: 'lote-highlight-line',
+                type: 'line',
+                source: 'lote-highlight-source',
+                paint: {
+                    'line-color': '#facc15',
+                    'line-width': 3,
+                    'line-dasharray': ['literal', [2, 1]],
+                },
+            });
+            map.addLayer({
+                id: 'lote-highlight-fill',
+                type: 'fill',
+                source: 'lote-highlight-source',
+                paint: {
+                    'fill-color': '#facc15',
+                    'fill-opacity': 0.15,
+                },
+            });
+
             mapRef.current = map;
             setMapLoaded(true);
         });
@@ -259,6 +284,46 @@ export default function MapContainer({
             registerSourceData('lotes-source', fc);
         }
     }, [lotes, mapLoaded]);
+
+    /* ── Highlight do lote selecionado ── */
+    useEffect(() => {
+        const map = mapRef.current;
+        if (!map || !mapLoaded) return;
+
+        const src = map.getSource('lote-highlight-source') as maplibregl.GeoJSONSource | undefined;
+        if (!src) return;
+
+        if (!loteAtual) {
+            src.setData({ type: 'FeatureCollection', features: [] });
+            return;
+        }
+
+        // Encontra o feature correspondente ao loteAtual
+        const match = lotes.find(l => l.id === loteAtual.id);
+        if (!match) {
+            src.setData({ type: 'FeatureCollection', features: [] });
+            return;
+        }
+
+        let rings: number[][][] | null = null;
+        if (match.geojson) {
+            rings = geoJSONToRings(match.geojson);
+        } else if (match.wkt) {
+            rings = wktToRings(match.wkt);
+        }
+
+        if (!rings) {
+            src.setData({ type: 'FeatureCollection', features: [] });
+            return;
+        }
+
+        const feature: Feature = {
+            type: 'Feature',
+            geometry: { type: 'Polygon', coordinates: rings },
+            properties: {},
+        };
+        src.setData({ type: 'FeatureCollection', features: [feature] });
+    }, [loteAtual, lotes, mapLoaded]);
 
     /* ── Modo de desenho (MapboxDraw) ── */
     useEffect(() => {

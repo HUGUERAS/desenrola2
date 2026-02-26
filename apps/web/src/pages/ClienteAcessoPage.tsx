@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { parseGeoFile } from '../lib/file-parsers';
+import { formatCPFCNPJ, formatPhone } from '../lib/format-utils';
 import apiClient from '../services/api';
 import '../styles/tokens.css';
 
@@ -559,11 +560,11 @@ export default function ClienteAcessoPage() {
         <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-accent)', letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 12 }}>Dados pessoais</p>
         <Campo label="Nome completo" id="nome" required value={dados.nome_cliente} onChange={e => updDados('nome_cliente', e.target.value)} placeholder="Fulano de Tal" />
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <Campo label="CPF" id="cpf" required value={dados.cpf_cnpj_cliente} onChange={e => updDados('cpf_cnpj_cliente', e.target.value)} placeholder="000.000.000-00" />
+            <Campo label="CPF / CNPJ" id="cpf" required value={dados.cpf_cnpj_cliente} onChange={e => updDados('cpf_cnpj_cliente', formatCPFCNPJ(e.target.value))} placeholder="000.000.000-00" />
             <Campo label="RG" id="rg" value={dados.rg_cliente} onChange={e => updDados('rg_cliente', e.target.value)} placeholder="0000000" />
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <Campo label="Telefone" id="tel" value={dados.telefone_cliente} onChange={e => updDados('telefone_cliente', e.target.value)} placeholder="(62) 99999-9999" />
+            <Campo label="Telefone" id="tel" value={dados.telefone_cliente} onChange={e => updDados('telefone_cliente', formatPhone(e.target.value))} placeholder="(62) 99999-9999" />
             <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '.04em' }}>Estado civil</label>
                 <select value={dados.estado_civil_cliente} onChange={e => updDados('estado_civil_cliente', e.target.value)}

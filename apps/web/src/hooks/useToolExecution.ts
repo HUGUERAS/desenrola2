@@ -911,12 +911,6 @@ export function useToolExecution({
           break;
         }
 
-        case 'converter-coords':
-        case 'adicionar-ponto': {
-          onToolInfo?.('Use o formulario no painel lateral');
-          break;
-        }
-
         default:
           break;
       }

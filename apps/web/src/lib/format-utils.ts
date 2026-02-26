@@ -15,6 +15,25 @@ export function formatCPF(value: string): string {
     return value;
 }
 
+export function formatCNPJ(value: string): string {
+    const numbers = value.replace(/\D/g, '');
+    if (numbers.length <= 14) {
+        return numbers
+            .replace(/(\d{2})(\d)/, '$1.$2')
+            .replace(/(\d{3})(\d)/, '$1.$2')
+            .replace(/(\d{3})(\d)/, '$1/$2')
+            .replace(/(\d{4})(\d{1,2})/, '$1-$2')
+            .replace(/(-\d{2})\d+?$/, '$1');
+    }
+    return value;
+}
+
+export function formatCPFCNPJ(value: string): string {
+    const numbers = value.replace(/\D/g, '');
+    if (numbers.length <= 11) return formatCPF(value);
+    return formatCNPJ(value);
+}
+
 export function formatPhone(value: string): string {
     const numbers = value.replace(/\D/g, '');
     if (numbers.length <= 11) {

@@ -16,10 +16,10 @@ const CATEGORY_KEYS: Record<string, ToolCategory> = {
 
 const TOOL_SHORTCUTS: Record<string, Partial<Record<ToolCategory, ToolId>>> = {
   a: { medicao: 'area' },
-  p: { medicao: 'perimetro', sigef: 'adicionar-ponto' },
+  p: { medicao: 'perimetro' },
   g: { medicao: 'angulo' },
   z: { medicao: 'azimute' },
-  c: { medicao: 'coordenadas', sigef: 'converter-coords' },
+  c: { medicao: 'coordenadas' },
   b: { edicao: 'buffer' },
   d: { edicao: 'dividir' },
   u: { edicao: 'unir' },
