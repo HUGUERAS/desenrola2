@@ -20,6 +20,7 @@ import {
     X,
     CheckCircle2,
     Trash2,
+    PlusCircle,
 } from 'lucide-react';
 import { useApp } from '../../pages/AppShell';
 import apiClient from '../../services/api';

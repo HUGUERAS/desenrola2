@@ -83,9 +83,12 @@ export function clearTemporaryLayers(map: maplibregl.Map) {
   });
 }
 
-function _applyColor(map: maplibregl.Map, layerId: string, color: [number, number, number]) {
+function _applyColor(map: maplibregl.Map, layerId: string, color: [number, number, number], opacity?: number) {
   const css = `rgb(${color[0]},${color[1]},${color[2]})`;
-  if (map.getLayer(`${layerId}-fill`)) map.setPaintProperty(`${layerId}-fill`, 'fill-color', css);
+  if (map.getLayer(`${layerId}-fill`)) {
+    map.setPaintProperty(`${layerId}-fill`, 'fill-color', css);
+    if (opacity !== undefined) map.setPaintProperty(`${layerId}-fill`, 'fill-opacity', opacity);
+  }
   if (map.getLayer(`${layerId}-line`)) map.setPaintProperty(`${layerId}-line`, 'line-color', css);
   if (map.getLayer(`${layerId}-circle`)) map.setPaintProperty(`${layerId}-circle`, 'circle-color', css);
 }
@@ -128,9 +131,10 @@ export function renderGeometryResult(
   map: maplibregl.Map,
   sourceId: string,
   geometry: Feature,
-  color: [number, number, number] = [156, 39, 176]
+  color: [number, number, number] = [156, 39, 176],
+  opacity?: number
 ) {
-  _applyColor(map, sourceId.replace('-source', ''), color);
+  _applyColor(map, sourceId.replace('-source', ''), color, opacity);
   _setData(map, sourceId, { type: 'FeatureCollection', features: [geometry] });
 }
 
