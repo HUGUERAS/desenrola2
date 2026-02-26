@@ -112,19 +112,31 @@ export default function MapContainer({
 
         map.addControl(new maplibregl.NavigationControl(), 'top-left');
 
-        // Fix de compatibilidade: MapboxDraw usa line-dasharray com arrays diretos
-        // em expressões `case`. MapLibre exige ["literal", [...]].
-        // Monkey-patch addLayer para corrigir automaticamente antes de passar ao MapLibre.
+        // Fix de compatibilidade: MapboxDraw usa line-dasharray com data expressions
+        // (case/match) que MapLibre não suporta. Substituímos por valor estático.
         const origAddLayer = map.addLayer.bind(map);
         (map as any).addLayer = (layer: any, before?: string) => {
             if (layer?.paint?.['line-dasharray']) {
-                layer = {
-                    ...layer,
-                    paint: {
-                        ...layer.paint,
-                        'line-dasharray': fixDasharray(layer.paint['line-dasharray']),
-                    },
-                };
+                const dash = layer.paint['line-dasharray'];
+                // Se for uma expressão (array com string no inicio como 'case','match'),
+                // substitui por valor estático simples
+                if (Array.isArray(dash) && typeof dash[0] === 'string' && dash[0] !== 'literal') {
+                    layer = {
+                        ...layer,
+                        paint: {
+                            ...layer.paint,
+                            'line-dasharray': ['literal', [2, 1]],
+                        },
+                    };
+                } else {
+                    layer = {
+                        ...layer,
+                        paint: {
+                            ...layer.paint,
+                            'line-dasharray': fixDasharray(dash),
+                        },
+                    };
+                }
             }
             return origAddLayer(layer, before);
         };
