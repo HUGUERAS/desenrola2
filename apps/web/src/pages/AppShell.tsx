@@ -47,6 +47,11 @@ interface AppContextValue extends AppState {
     setMapZoomTo: (geojson: Record<string, any> | null) => void;
     refreshUser: () => Promise<void>;
     logout: () => void;
+    // Sistema de seleção
+    selectedPolygons: string[]; // IDs dos polígonos selecionados
+    setSelectedPolygons: (ids: string[]) => void;
+    togglePolygonSelection: (id: string, multiSelect?: boolean) => void;
+    clearSelection: () => void;
 }
 
 export const AppContext = createContext<AppContextValue | null>(null);
@@ -61,7 +66,7 @@ export const useApp = () => {
 export default function AppShell() {
     const navigate = useNavigate();
     const [state, setState] = useState<AppState>(initialAppState);
-
+    const [selectedPolygons, setSelectedPolygons] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
 
     const initUser = useCallback(async () => {
@@ -192,6 +197,21 @@ export default function AppShell() {
             apiClient.logout();
             navigate('/login');
         },
+        // Funções de seleção
+        selectedPolygons,
+        setSelectedPolygons,
+        togglePolygonSelection: (id: string, multiSelect = false) => {
+            setSelectedPolygons((prev) => {
+                if (multiSelect) {
+                    // Multi-seleção (Ctrl+Click)
+                    return prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id];
+                } else {
+                    // Seleção única
+                    return prev.includes(id) && prev.length === 1 ? [] : [id];
+                }
+            });
+        },
+        clearSelection: () => setSelectedPolygons([]),
     };
 
     if (loading) {

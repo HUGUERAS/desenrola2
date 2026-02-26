@@ -9,11 +9,13 @@ import type { ToolId, ToolResult } from '../types/tools';
 import type { Feature, Polygon } from 'geojson';
 import * as turf from '@turf/turf';
 import maplibregl from 'maplibre-gl';
-import { getOrCreateToolLayer, renderBuffer, renderSplitPolygons, renderGeometryResult, renderMeasurementPoint, renderMeasurementLine, clearToolLayer, findAllPolygons } from '../lib/geometry/GeometryUtils';
+import { getOrCreateToolLayer, renderBuffer, renderSplitPolygons, renderGeometryResult, renderMeasurementPoint, renderMeasurementLine, clearToolLayer, findAllPolygons, calculateDistance } from '../lib/geometry/GeometryUtils';
 import { calculateAngle, calculateAzimuth } from '../lib/geometry/AngleCalculation';
 import { geographicToSIRGASUTM, toDMS } from '../lib/geometry/CoordinateConversion';
 import { validatePolygonTopology, detectGaps, validateMultiPolygonTopology } from '../lib/geometry/TopologyValidation';
 import { parseGeoFile } from '../lib/file-parsers';
+import { buildDXF } from '../services/toolsApi';
+import { setVertexLabel, getVertexLabel, getFeatureLabels } from '../lib/vertex-labels';
 
 interface UseToolExecutionOptions {
   map: maplibregl.Map | null;
@@ -30,8 +32,19 @@ function toTurfPolygon(geometry: maplibregl.MapGeoJSONFeature | null | undefined
 }
 
 function queryPolygon(map: maplibregl.Map, point: maplibregl.Point): Feature<Polygon> | null {
-  const features = map.queryRenderedFeatures(point);
-  const found = features.find(f => f.geometry.type === 'Polygon');
+  // Busca primeiro nas layers de lotes (prioridade)
+  const lotesFeatures = map.queryRenderedFeatures(point, { 
+    layers: ['lotes-fill', 'lotes-line'] 
+  });
+  
+  if (lotesFeatures.length > 0) {
+    const found = lotesFeatures.find(f => f.geometry.type === 'Polygon');
+    if (found) return toTurfPolygon(found);
+  }
+  
+  // Fallback: busca em todas as layers de ferramentas
+  const allFeatures = map.queryRenderedFeatures(point);
+  const found = allFeatures.find(f => f.geometry.type === 'Polygon');
   return found ? toTurfPolygon(found) : null;
 }
 
@@ -46,13 +59,31 @@ export function useToolExecution({
   const handlersRef = useRef<(() => void)[]>([]);
   const clickPointsRef = useRef<[number, number][]>([]);
   const selectedFeaturesRef = useRef<Feature<Polygon>[]>([]);
+  const highlightLayerRef = useRef<string | null>(null);
+
+  // Helper: Highlight polígono ao passar o mouse
+  const highlightPolygon = useCallback((poly: Feature<Polygon> | null) => {
+    if (!map) return;
+    const sourceId = highlightLayerRef.current || getOrCreateToolLayer(map, 'tool-highlight-layer');
+    highlightLayerRef.current = sourceId;
+    
+    if (poly) {
+      renderGeometryResult(map, sourceId, poly, [59, 130, 246], 0.15); // Azul suave
+    } else {
+      clearToolLayer(map, sourceId);
+    }
+  }, [map]);
 
   const cleanup = useCallback(() => {
     handlersRef.current.forEach(off => off());
     handlersRef.current = [];
     clickPointsRef.current = [];
     selectedFeaturesRef.current = [];
-  }, []);
+    if (map && highlightLayerRef.current) {
+      clearToolLayer(map, highlightLayerRef.current);
+      highlightLayerRef.current = null;
+    }
+  }, [map]);
 
   useEffect(() => {
     if (!map || !activeTool) {
@@ -69,7 +100,17 @@ export function useToolExecution({
         // MEDICAO
         // ═══════════════════════════════════════════
         case 'area': {
-          onToolInfo?.('Clique em um poligono para medir a area');
+          onToolInfo?.('👆 Passe o mouse sobre um polígono e clique para medir a área');
+          
+          // Mousemove para highlight
+          const moveHandler = (e: maplibregl.MapMouseEvent) => {
+            const poly = queryPolygon(map, e.point);
+            highlightPolygon(poly);
+          };
+          map.on('mousemove', moveHandler);
+          handlersRef.current.push(() => map.off('mousemove', moveHandler));
+          
+          // Click para medir
           const handler = (e: maplibregl.MapMouseEvent) => {
             const poly = queryPolygon(map, e.point);
             if (poly) {
@@ -87,7 +128,17 @@ export function useToolExecution({
         }
 
         case 'perimetro': {
-          onToolInfo?.('Clique em um poligono para medir o perimetro');
+          onToolInfo?.('👆 Passe o mouse sobre um polígono e clique para medir o perímetro');
+          
+          // Mousemove para highlight
+          const moveHandler = (e: maplibregl.MapMouseEvent) => {
+            const poly = queryPolygon(map, e.point);
+            highlightPolygon(poly);
+          };
+          map.on('mousemove', moveHandler);
+          handlersRef.current.push(() => map.off('mousemove', moveHandler));
+          
+          // Click para medir
           const handler = (e: maplibregl.MapMouseEvent) => {
             const poly = queryPolygon(map, e.point);
             if (poly) {
@@ -179,9 +230,149 @@ export function useToolExecution({
         // ═══════════════════════════════════════════
         // EDICAO
         // ═══════════════════════════════════════════
+        case 'selecionar': {
+          onToolInfo?.('🖱️ Clique em um polígono para selecionar e editar (mover vértices, adicionar/remover)');
+          const sourceId = getOrCreateToolLayer(map, 'tool-selection-layer');
+          let selectedPolygon: Feature<Polygon> | null = null;
+          let vertexMarkers: maplibregl.Marker[] = [];
+          let isDragging = false;
+          let draggedVertexIndex: number | null = null;
+
+          // Mousemove para highlight
+          const moveHandler = (e: maplibregl.MapMouseEvent) => {
+            if (!isDragging) {
+              const poly = queryPolygon(map, e.point);
+              highlightPolygon(poly);
+            }
+          };
+          map.on('mousemove', moveHandler);
+          handlersRef.current.push(() => map.off('mousemove', moveHandler));
+
+          // Função para renderizar vértices editáveis
+          const renderEditableVertices = (poly: Feature<Polygon>) => {
+            // Limpar marcadores anteriores
+            vertexMarkers.forEach(m => m.remove());
+            vertexMarkers = [];
+
+            const coords = poly.geometry.coordinates[0];
+            const vertices = coords.slice(0, -1); // Remove o último (duplicado)
+
+            vertices.forEach((coord, index) => {
+              const el = document.createElement('div');
+              el.className = 'vertex-marker';
+              el.style.cssText = `
+                width: 12px;
+                height: 12px;
+                background: #3b82f6;
+                border: 2px solid white;
+                border-radius: 50%;
+                cursor: move;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+              `;
+              el.title = `Vértice ${index + 1} - Arraste para mover`;
+
+              const marker = new maplibregl.Marker({
+                element: el,
+                draggable: true,
+              })
+                .setLngLat([coord[0], coord[1]])
+                .addTo(map);
+
+              // Evento de drag do vértice
+              marker.on('dragstart', () => {
+                isDragging = true;
+                draggedVertexIndex = index;
+              });
+
+              marker.on('drag', () => {
+                if (draggedVertexIndex !== null && selectedPolygon) {
+                  const lngLat = marker.getLngLat();
+                  const newCoords = [...selectedPolygon.geometry.coordinates[0]];
+                  newCoords[draggedVertexIndex] = [lngLat.lng, lngLat.lat];
+                  // Atualiza também o último ponto (fechamento)
+                  if (draggedVertexIndex === 0) {
+                    newCoords[newCoords.length - 1] = [lngLat.lng, lngLat.lat];
+                  }
+                  selectedPolygon.geometry.coordinates[0] = newCoords;
+                  renderGeometryResult(map, sourceId, selectedPolygon, [59, 130, 246], 0.3);
+                }
+              });
+
+              marker.on('dragend', () => {
+                isDragging = false;
+                draggedVertexIndex = null;
+                if (selectedPolygon) {
+                  onToolInfo?.('✅ Vértice movido! Continue editando ou pressione ESC para salvar');
+                }
+              });
+
+              vertexMarkers.push(marker);
+            });
+          };
+
+          // Click para selecionar polígono
+          const clickHandler = (e: maplibregl.MapMouseEvent) => {
+            if (isDragging) return;
+
+            const poly = queryPolygon(map, e.point);
+            if (poly) {
+              selectedPolygon = poly;
+              renderGeometryResult(map, sourceId, poly, [59, 130, 246], 0.3);
+              renderEditableVertices(poly);
+              onToolInfo?.('✏️ Polígono selecionado! Arraste os vértices para editar. Pressione ESC para salvar ou DEL para cancelar');
+              
+              onToolResult({
+                type: 'selecionar',
+                value: 'Polígono selecionado para edição',
+                details: { vertices: poly.geometry.coordinates[0].length - 1 },
+                geometry: poly,
+              });
+            }
+          };
+          map.on('click', clickHandler);
+          handlersRef.current.push(() => map.off('click', clickHandler));
+
+          // Teclado - ESC para salvar, DEL para cancelar
+          const keyHandler = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && selectedPolygon) {
+              onToolResult({
+                type: 'selecionar',
+                value: '💾 Alterações salvas! Use "Confirmar e Salvar" no painel',
+                geometry: selectedPolygon,
+              });
+              vertexMarkers.forEach(m => m.remove());
+              vertexMarkers = [];
+              selectedPolygon = null;
+            } else if (e.key === 'Delete' && selectedPolygon) {
+              clearToolLayer(map, sourceId);
+              vertexMarkers.forEach(m => m.remove());
+              vertexMarkers = [];
+              selectedPolygon = null;
+              onToolInfo?.('❌ Edição cancelada');
+            }
+          };
+          window.addEventListener('keydown', keyHandler);
+          handlersRef.current.push(() => {
+            window.removeEventListener('keydown', keyHandler);
+            vertexMarkers.forEach(m => m.remove());
+          });
+
+          break;
+        }
+
         case 'buffer': {
-          onToolInfo?.(`Clique em um poligono para criar buffer de ${bufferDistance}m`);
+          onToolInfo?.(`👆 Passe o mouse e clique em um polígono para criar buffer de ${bufferDistance}m`);
           const sourceId = getOrCreateToolLayer(map, 'tool-buffer-layer');
+          
+          // Mousemove para highlight
+          const moveHandler = (e: maplibregl.MapMouseEvent) => {
+            const poly = queryPolygon(map, e.point);
+            highlightPolygon(poly);
+          };
+          map.on('mousemove', moveHandler);
+          handlersRef.current.push(() => map.off('mousemove', moveHandler));
+          
+          // Click para criar buffer
           const handler = (e: maplibregl.MapMouseEvent) => {
             const poly = queryPolygon(map, e.point);
             if (poly) {
@@ -247,14 +438,24 @@ export function useToolExecution({
         }
 
         case 'unir': {
-          onToolInfo?.('Clique em 2 ou mais poligonos, depois pressione Enter para unir');
+          onToolInfo?.('👆 Clique em 2 ou mais polígonos. Pressione ENTER quando terminar a seleção.');
           const sourceId = getOrCreateToolLayer(map, 'tool-union-layer');
+          
+          // Mousemove para highlight
+          const moveHandler = (e: maplibregl.MapMouseEvent) => {
+            const poly = queryPolygon(map, e.point);
+            highlightPolygon(poly);
+          };
+          map.on('mousemove', moveHandler);
+          handlersRef.current.push(() => map.off('mousemove', moveHandler));
+          
+          // Click para selecionar
           const handler = (e: maplibregl.MapMouseEvent) => {
             const poly = queryPolygon(map, e.point);
             if (poly) {
               selectedFeaturesRef.current.push(poly);
-              renderGeometryResult(map, sourceId, poly, [33, 150, 243]);
-              onToolInfo?.(`${selectedFeaturesRef.current.length} poligono(s) selecionado(s). Clique mais ou pressione Enter para unir.`);
+              renderGeometryResult(map, sourceId, poly, [255, 193, 7]); // Amarelo para selecionados
+              onToolInfo?.(`✅ ${selectedFeaturesRef.current.length} polígono(s) selecionado(s). ${selectedFeaturesRef.current.length >= 2 ? 'Pressione ENTER para unir' : 'Selecione mais um'}`);
             }
           };
           map.on('click', handler);
@@ -284,8 +485,18 @@ export function useToolExecution({
         }
 
         case 'simplificar': {
-          onToolInfo?.('Clique em um poligono para simplificar');
+          onToolInfo?.('👆 Passe o mouse e clique em um polígono para simplificar (reduz vértices)');
           const sourceId = getOrCreateToolLayer(map, 'tool-general-layer');
+          
+          // Mousemove para highlight
+          const moveHandler = (e: maplibregl.MapMouseEvent) => {
+            const poly = queryPolygon(map, e.point);
+            highlightPolygon(poly);
+          };
+          map.on('mousemove', moveHandler);
+          handlersRef.current.push(() => map.off('mousemove', moveHandler));
+          
+          // Click para simplificar
           const handler = (e: maplibregl.MapMouseEvent) => {
             const poly = queryPolygon(map, e.point);
             if (poly) {
@@ -309,8 +520,18 @@ export function useToolExecution({
         // TOPOLOGIA
         // ═══════════════════════════════════════════
         case 'validar-topologia': {
-          onToolInfo?.('Clique em um poligono para validar topologia');
+          onToolInfo?.('👆 Passe o mouse e clique em um polígono para validar topologia (auto-interseção, buracos)');
           const sourceId = getOrCreateToolLayer(map, 'tool-topology-layer');
+          
+          // Mousemove para highlight
+          const moveHandler = (e: maplibregl.MapMouseEvent) => {
+            const poly = queryPolygon(map, e.point);
+            highlightPolygon(poly);
+          };
+          map.on('mousemove', moveHandler);
+          handlersRef.current.push(() => map.off('mousemove', moveHandler));
+          
+          // Click para validar
           const handler = (e: maplibregl.MapMouseEvent) => {
             const poly = queryPolygon(map, e.point);
             if (poly) {
@@ -367,12 +588,25 @@ export function useToolExecution({
         // IMPORT / EXPORT
         // ═══════════════════════════════════════════
         case 'importar-kml':
-        case 'importar-geojson': {
-          const accept = activeTool === 'importar-kml' ? '.kml,.kmz' : '.geojson,.json';
-          onToolInfo?.(`Selecione um arquivo ${activeTool === 'importar-kml' ? 'KML/KMZ' : 'GeoJSON'}...`);
+        case 'importar-geojson':
+        case 'importar-dxf':
+        case 'importar-csv': {
+          const acceptMap: Record<string, string> = {
+            'importar-kml': '.kml,.kmz',
+            'importar-geojson': '.geojson,.json',
+            'importar-dxf': '.dxf',
+            'importar-csv': '.csv,.txt',
+          };
+          const formatMap: Record<string, string> = {
+            'importar-kml': 'KML/KMZ',
+            'importar-geojson': 'GeoJSON',
+            'importar-dxf': 'DXF (AutoCAD/SIGEF)',
+            'importar-csv': 'CSV/TXT com coordenadas (lon,lat)',
+          };
+          onToolInfo?.(`Selecione um arquivo ${formatMap[activeTool]}...`);
           const input = document.createElement('input');
           input.type = 'file';
-          input.accept = accept;
+          input.accept = acceptMap[activeTool];
           input.onchange = async () => {
             const file = input.files?.[0];
             if (!file) return;
@@ -381,7 +615,7 @@ export function useToolExecution({
               if (geojson) {
                 onToolResult({
                   type: activeTool, value: `Arquivo "${file.name}" importado com sucesso`,
-                  geometry: geojson, details: { fileName: file.name, type: geojson.type },
+                  geometry: geojson, details: { fileName: file.name, type: (geojson as any).type },
                 });
               } else {
                 onToolError?.(`Nao foi possivel processar o arquivo "${file.name}"`);
@@ -413,13 +647,181 @@ export function useToolExecution({
         }
 
         case 'exportar-dxf': {
-          onToolInfo?.('Exportacao DXF requer backend. Clique em um poligono para exportar.');
+          onToolInfo?.('👆 Passe o mouse e clique em um polígono para exportar como DXF (AutoCAD)');
+          
+          // Mousemove para highlight
+          const moveHandler = (e: maplibregl.MapMouseEvent) => {
+            const poly = queryPolygon(map, e.point);
+            highlightPolygon(poly);
+          };
+          map.on('mousemove', moveHandler);
+          handlersRef.current.push(() => map.off('mousemove', moveHandler));
+          
+          // Click para exportar
           const handler = (e: maplibregl.MapMouseEvent) => {
             const poly = queryPolygon(map, e.point);
-            if (poly) onToolError?.('Exportacao DXF: backend nao configurado ainda');
+            if (poly) {
+              const ring = (poly.geometry as Polygon).coordinates[0] ?? [];
+              // Usa featureId para buscar labels customizados
+              const featureId = String(
+                (poly as any).id ?? poly.properties?.id ?? poly.properties?.lote_id ?? 'unknown'
+              );
+              const labels = getFeatureLabels(featureId);
+              const dxfContent = buildDXF(ring, labels);
+              const blob = new Blob([dxfContent], { type: 'application/octet-stream' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `lote-${featureId}.dxf`;
+              a.click();
+              URL.revokeObjectURL(url);
+              onToolResult({
+                type: 'exportar-dxf',
+                value: 'DXF exportado com sucesso',
+                details: { vertices: ring.length - 1, featureId, comLabels: labels.size > 0 },
+              });
+            }
           };
           map.on('click', handler);
           handlersRef.current.push(() => map.off('click', handler));
+          break;
+        }
+
+        case 'renomear-vertices': {
+          onToolInfo?.('Clique em um vertice para renomear');
+
+          // Marcadores DOM para mostrar labels atuais
+          const vertexMarkers: maplibregl.Marker[] = [];
+
+          const renderVertexMarkers = () => {
+            vertexMarkers.forEach(m => m.remove());
+            vertexMarkers.length = 0;
+            const polys = findAllPolygons(map);
+            for (const poly of polys) {
+              const fid = String((poly as any).id ?? poly.properties?.id ?? poly.properties?.lote_id ?? 'unknown');
+              const ring = poly.geometry.coordinates[0] ?? [];
+              const pts = (ring.length > 1 &&
+                ring[0][0] === ring[ring.length - 1][0] &&
+                ring[0][1] === ring[ring.length - 1][1])
+                ? ring.slice(0, -1)
+                : ring;
+              for (let i = 0; i < pts.length; i++) {
+                const [lon, lat] = pts[i];
+                const lbl = getVertexLabel(fid, i);
+                const el = document.createElement('div');
+                el.style.cssText = [
+                  'background:#1e40af', 'color:#fff', 'font-size:10px',
+                  'font-weight:700', 'padding:2px 5px', 'border-radius:10px',
+                  'white-space:nowrap', 'cursor:pointer', 'user-select:none',
+                  'box-shadow:0 1px 3px rgba(0,0,0,.4)', 'border:1.5px solid #fff',
+                ].join(';');
+                el.textContent = lbl;
+                vertexMarkers.push(
+                  new maplibregl.Marker({ element: el, anchor: 'bottom' })
+                    .setLngLat([lon, lat])
+                    .addTo(map)
+                );
+              }
+            }
+          };
+
+          renderVertexMarkers();
+
+          const popup = new maplibregl.Popup({ closeOnClick: false, maxWidth: '220px' });
+
+          const handler = (e: maplibregl.MapMouseEvent) => {
+            const polys = findAllPolygons(map);
+            let closest: { dist: number; fid: string; idx: number; coords: [number, number] } | null = null;
+
+            for (const poly of polys) {
+              const fid = String((poly as any).id ?? poly.properties?.id ?? poly.properties?.lote_id ?? 'unknown');
+              const ring = poly.geometry.coordinates[0] ?? [];
+              const pts = (ring.length > 1 &&
+                ring[0][0] === ring[ring.length - 1][0] &&
+                ring[0][1] === ring[ring.length - 1][1])
+                ? ring.slice(0, -1)
+                : ring;
+              for (let i = 0; i < pts.length; i++) {
+                const [vx, vy] = pts[i];
+                const d = calculateDistance([e.lngLat.lng, e.lngLat.lat], [vx, vy]);
+                if (!closest || d < closest.dist) {
+                  closest = { dist: d, fid, idx: i, coords: [vx, vy] };
+                }
+              }
+            }
+
+            if (!closest || closest.dist > 500) { // > 500 m de distância
+              onToolError?.('Nenhum vertice encontrado proximo ao clique');
+              return;
+            }
+
+            const currentLabel = getVertexLabel(closest.fid, closest.idx);
+
+            // Popup com input inline
+            const container = document.createElement('div');
+            container.style.cssText = 'padding:8px;min-width:180px;font-family:sans-serif';
+
+            const title = document.createElement('div');
+            title.style.cssText = 'font-size:11px;font-weight:700;color:#374151;margin-bottom:6px';
+            title.textContent = `Vertice ${closest.idx + 1} — renomear`;
+
+            const inp = document.createElement('input');
+            inp.type = 'text';
+            inp.value = currentLabel;
+            inp.placeholder = `V${closest.idx + 1}`;
+            inp.style.cssText = [
+              'width:100%', 'border:1px solid #d1d5db', 'border-radius:4px',
+              'padding:5px 8px', 'font-size:13px', 'box-sizing:border-box',
+              'margin-bottom:8px', 'outline:none',
+            ].join(';');
+
+            const btnRow = document.createElement('div');
+            btnRow.style.cssText = 'display:flex;gap:6px;justify-content:flex-end';
+
+            const btnSave = document.createElement('button');
+            btnSave.textContent = 'Salvar';
+            btnSave.style.cssText = 'background:#2563eb;color:#fff;border:none;border-radius:4px;padding:4px 12px;cursor:pointer;font-size:12px';
+
+            const btnCancel = document.createElement('button');
+            btnCancel.textContent = 'Cancelar';
+            btnCancel.style.cssText = 'background:#f3f4f6;color:#374151;border:1px solid #d1d5db;border-radius:4px;padding:4px 12px;cursor:pointer;font-size:12px';
+
+            const save = () => {
+              const newLabel = inp.value.trim() || `V${closest!.idx + 1}`;
+              setVertexLabel(closest!.fid, closest!.idx, newLabel);
+              popup.remove();
+              renderVertexMarkers();
+              onToolResult({
+                type: 'renomear-vertices',
+                value: `Vertice ${closest!.idx + 1} renomeado para "${newLabel}"`,
+                details: { featureId: closest!.fid, vertexIdx: closest!.idx, label: newLabel },
+              });
+            };
+
+            btnSave.addEventListener('click', save);
+            btnCancel.addEventListener('click', () => popup.remove());
+            inp.addEventListener('keydown', (ev) => {
+              if (ev.key === 'Enter') save();
+              if (ev.key === 'Escape') popup.remove();
+            });
+
+            btnRow.appendChild(btnCancel);
+            btnRow.appendChild(btnSave);
+            container.appendChild(title);
+            container.appendChild(inp);
+            container.appendChild(btnRow);
+
+            popup.setLngLat(closest.coords).setDOMContent(container).addTo(map);
+            setTimeout(() => inp.focus(), 50);
+          };
+
+          map.on('click', handler);
+          handlersRef.current.push(() => {
+            map.off('click', handler);
+            popup.remove();
+            vertexMarkers.forEach(m => m.remove());
+            vertexMarkers.length = 0;
+          });
           break;
         }
 

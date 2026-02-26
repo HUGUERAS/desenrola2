@@ -119,17 +119,97 @@ export function exportGeoJSON(geometry: object): void {
   downloadBlob(JSON.stringify(geometry, null, 2), 'export.geojson', 'application/geo+json');
 }
 
-export function exportDXF(geometries: object[]): void {
-  // Gera DXF mínimo com LWPOLYLINE para cada geometria GeoJSON
-  const entities: string[] = [];
+/**
+ * Gera conteúdo DXF mínimo com LWPOLYLINE + TEXT por vértice.
+ * @param ring  Array de coords [lon, lat] (anel fechado ou aberto)
+ * @param labels  Map de vertexIndex → label customizado (opcional)
+ * @param layerName  Nome da layer DXF (default: "LOTES")
+ */
+export function buildDXF(
+  ring: number[][],
+  labels: Map<number, string> = new Map(),
+  layerName = 'LOTES',
+): string {
+  // ── LWPOLYLINE ────────────────────────────────────────────────
+  const closed = 1; // flag fechado
+  const pts = ring
+    .map(([x, y]) => ` 10\n${x.toFixed(6)}\n 20\n${y.toFixed(6)}\n 30\n0.000000`)
+    .join('\n');
+
+  const polyline = [
+    ` 0\nLWPOLYLINE`,
+    ` 8\n${layerName}`,
+    ` 70\n${closed}`,
+    ` 90\n${ring.length}`,
+    pts,
+  ].join('\n');
+
+  // ── TEXT por vértice ──────────────────────────────────────────
+  // Gera texto para cada vértice (com label customizado ou padrão V<n>)
+  const textHeight = 0.0001; // graus — ajustável
+  const offsetY = textHeight * 1.2;
+  const vertexTexts: string[] = [];
+
+  const ringForLabel = ring[ring.length - 1][0] === ring[0][0] && ring[ring.length - 1][1] === ring[0][1]
+    ? ring.slice(0, -1) // remove duplicata final
+    : ring;
+
+  for (let i = 0; i < ringForLabel.length; i++) {
+    const [x, y] = ringForLabel[i];
+    const label = labels.get(i) ?? `V${i + 1}`;
+    vertexTexts.push([
+      ` 0\nTEXT`,
+      ` 8\nVERTICES`,   // layer separada
+      ` 10\n${x.toFixed(6)}`,
+      ` 20\n${(y + offsetY).toFixed(6)}`,
+      ` 30\n0.000000`,
+      ` 40\n${textHeight.toFixed(6)}`,
+      `  1\n${label}`,
+    ].join('\n'));
+  }
+
+  // ── POINT por vértice ─────────────────────────────────────────
+  const points = ringForLabel.map(([x, y]) => [
+    ` 0\nPOINT`,
+    ` 8\nVERTICES`,
+    ` 10\n${x.toFixed(6)}`,
+    ` 20\n${y.toFixed(6)}`,
+    ` 30\n0.000000`,
+  ].join('\n'));
+
+  const entities = [polyline, ...vertexTexts, ...points];
+
+  return [
+    `  0\nSECTION`,
+    `  2\nHEADER`,
+    `  9\n$ACADVER`,
+    `  1\nAC1015`,   // AutoCAD 2000
+    `  0\nENDSEC`,
+    `  0\nSECTION`,
+    `  2\nENTITIES`,
+    entities.join('\n'),
+    `  0\nENDSEC`,
+    `  0\nEOF`,
+  ].join('\n');
+}
+
+/** Exporta array de geometrias GeoJSON como DXF com download automático */
+export function exportDXF(geometries: object[], labels: Map<number, string> = new Map()): void {
+  const allRings: number[][][] = [];
   for (const geo of geometries) {
     const g = geo as { type?: string; coordinates?: number[][][] };
-    const rings = g?.type === 'Polygon' ? g.coordinates : g?.type === 'MultiPolygon' ? (geo as { coordinates: number[][][][] }).coordinates.flat() : [];
-    for (const ring of rings ?? []) {
-      const pts = ring.map(([x, y]) => ` 10\n${x.toFixed(6)}\n 20\n${y.toFixed(6)}\n 30\n0.0`).join('\n');
-      entities.push(` 0\nLWPOLYLINE\n 8\n0\n 70\n1\n 90\n${ring.length}\n${pts}`);
-    }
+    const rings =
+      g?.type === 'Polygon'
+        ? g.coordinates ?? []
+        : g?.type === 'MultiPolygon'
+          ? (geo as { coordinates: number[][][][] }).coordinates.flat()
+          : [];
+    allRings.push(...rings);
   }
-  const dxf = `  0\nSECTION\n  2\nENTITIES\n${entities.join('\n')}\n  0\nENDSEC\n  0\nEOF\n`;
-  downloadBlob(dxf, 'export.dxf');
+
+  if (allRings.length === 0) return;
+
+  // Usa o maior anel como polígono principal
+  const mainRing = allRings.reduce((a, b) => (a.length >= b.length ? a : b));
+  downloadBlob(buildDXF(mainRing, labels), 'export.dxf');
 }

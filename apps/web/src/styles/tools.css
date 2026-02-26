@@ -82,6 +82,29 @@
   cursor: not-allowed;
 }
 
+/* ── Vertex Markers (Editable) ── */
+.vertex-marker {
+  width: 12px;
+  height: 12px;
+  background: #3b82f6;
+  border: 2px solid white;
+  border-radius: 50%;
+  cursor: move;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  transition: all 0.15s;
+}
+
+.vertex-marker:hover {
+  background: #2563eb;
+  transform: scale(1.3);
+  box-shadow: 0 3px 6px rgba(0,0,0,0.4);
+}
+
+.vertex-marker:active {
+  background: #1d4ed8;
+  transform: scale(1.1);
+}
+
 .tool-label {
   flex: 1;
   overflow: hidden;
@@ -355,6 +378,24 @@
 .camada-toggle:hover {
   background: #1e293b;
   color: #e2e8f0;
+}
+
+.camada-color-picker {
+  width: 24px;
+  height: 24px;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.camada-color-picker::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.camada-color-picker::-webkit-color-swatch {
+  border: none;
+  border-radius: 3px;
 }
 
 .camada-title {

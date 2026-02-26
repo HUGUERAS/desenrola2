@@ -1,10 +1,11 @@
 /**
- * StatusBar — Barra inferior com coordenadas, SRID, escala
+ * StatusBar — Barra inferior com coordenadas, SRID, escala, seleção
  */
 import { useApp } from '../pages/AppShell';
+import { X } from 'lucide-react';
 
 export default function StatusBar() {
-    const { mapCursor, loteAtual } = useApp();
+    const { mapCursor, loteAtual, selectedPolygons, clearSelection } = useApp();
 
     return (
         <footer className="app-statusbar">
@@ -21,6 +22,20 @@ export default function StatusBar() {
                         : '—, —'}
                 </span>
             </div>
+
+            {selectedPolygons.length > 0 && (
+                <div className="app-statusbar-item app-statusbar-selection">
+                    <span className="app-statusbar-label">✓ Selecionados</span>
+                    <span className="app-statusbar-value">{selectedPolygons.length}</span>
+                    <button
+                        className="app-statusbar-clear-btn"
+                        onClick={clearSelection}
+                        title="Limpar seleção"
+                    >
+                        <X size={12} />
+                    </button>
+                </div>
+            )}
 
             {loteAtual && (
                 <div className="app-statusbar-item">

@@ -463,6 +463,31 @@ export default function DesenharPanel() {
             {tab === 'camadas' && (
                 <>
                     <div className="camadas-actions">
+                        <button 
+                            className="camadas-action-btn camadas-action-primary" 
+                            onClick={() => {
+                                const layerName = prompt('Nome da nova camada:');
+                                if (layerName) {
+                                    const newLayer: LayerConfig = {
+                                        id: `custom-${Date.now()}`,
+                                        title: layerName,
+                                        visible: true,
+                                        opacity: 100,
+                                        type: 'custom',
+                                        removable: true,
+                                        color: '#3b82f6',
+                                        features: [],
+                                    };
+                                    updateToolLayer(newLayer);
+                                }
+                            }}
+                            title="Criar nova camada customizada"
+                        >
+                            <PlusCircle size={14} /> Nova Camada
+                        </button>
+                    </div>
+                    
+                    <div className="camadas-actions">
                         <button className="camadas-action-btn" onClick={showAllLayers} title="Mostrar todas">
                             <Eye size={14} /> Mostrar Todas
                         </button>
@@ -480,6 +505,7 @@ export default function DesenharPanel() {
                                     layer={layer}
                                     onToggle={() => toggleVisibility(layer)}
                                     onOpacityChange={(value) => changeOpacity(layer, value)}
+                                    onColorChange={(color) => updateToolLayer({ ...layer, color })}
                                 />
                             ))}
                         </div>
@@ -494,6 +520,7 @@ export default function DesenharPanel() {
                                     layer={layer}
                                     onToggle={() => toggleVisibility(layer)}
                                     onOpacityChange={(value) => changeOpacity(layer, value)}
+                                    onColorChange={(color) => updateToolLayer({ ...layer, color })}
                                     onRemove={layer.removable !== false ? () => removeToolLayer(layer.id) : undefined}
                                 />
                             ))}
@@ -509,6 +536,7 @@ export default function DesenharPanel() {
                                     layer={layer}
                                     onToggle={() => toggleVisibility(layer)}
                                     onOpacityChange={(value) => changeOpacity(layer, value)}
+                                    onColorChange={(color) => updateToolLayer({ ...layer, color })}
                                     onRemove={() => removeToolLayer(layer.id)}
                                 />
                             ))}
@@ -554,11 +582,13 @@ function LayerItem({
     layer,
     onToggle,
     onOpacityChange,
+    onColorChange,
     onRemove,
 }: {
     layer: LayerConfig;
     onToggle: () => void;
     onOpacityChange: (value: number) => void;
+    onColorChange?: (color: string) => void;
     onRemove?: () => void;
 }) {
     return (
@@ -567,6 +597,15 @@ function LayerItem({
                 <button className="camada-toggle" onClick={onToggle} title={layer.visible ? 'Ocultar' : 'Mostrar'}>
                     {layer.visible ? <Eye size={14} /> : <EyeOff size={14} />}
                 </button>
+                {onColorChange && layer.color && (
+                    <input
+                        type="color"
+                        value={layer.color}
+                        onChange={(e) => onColorChange(e.target.value)}
+                        className="camada-color-picker"
+                        title="Mudar cor da camada"
+                    />
+                )}
                 <span className="camada-title">{layer.title}</span>
                 {onRemove && (
                     <button className="camada-remove" onClick={onRemove} title="Remover camada">
