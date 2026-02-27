@@ -23,8 +23,10 @@ import {
     upsertGeometry,
     upsertToolLayer,
 } from '../features/app-shell/utils';
+import ToolInstruction from '../components/tools/ToolInstruction';
 import '../styles/app-shell.css';
 import '../styles/map.css';
+import '../styles/tool-instruction.css';
 
 // ── Tipos ──
 export type { SidebarPanel, UserRole, Projeto, Lote, AppState };
@@ -52,6 +54,8 @@ interface AppContextValue extends AppState {
     setSelectedPolygons: (ids: string[]) => void;
     togglePolygonSelection: (id: string, multiSelect?: boolean) => void;
     clearSelection: () => void;
+    bufferDistance: number;
+    setBufferDistance: (dist: number) => void;
 }
 
 export const AppContext = createContext<AppContextValue | null>(null);
@@ -67,6 +71,7 @@ export default function AppShell() {
     const navigate = useNavigate();
     const [state, setState] = useState<AppState>(initialAppState);
     const [selectedPolygons, setSelectedPolygons] = useState<string[]>([]);
+    const [bufferDistance, setBufferDistance] = useState<number>(10);
     const [loading, setLoading] = useState(true);
 
     const initUser = useCallback(async () => {
@@ -212,6 +217,8 @@ export default function AppShell() {
             });
         },
         clearSelection: () => setSelectedPolygons([]),
+        bufferDistance,
+        setBufferDistance,
     };
 
     if (loading) {
@@ -264,6 +271,7 @@ export default function AppShell() {
                                 }
                             }}
                         />
+                        <ToolInstruction />
                     </main>
                 </div>
                 <StatusBar />

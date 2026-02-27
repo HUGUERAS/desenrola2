@@ -19,6 +19,8 @@ import {
     ArrowUp, ArrowDown, ArrowLeft, ArrowRight, AlertCircle
 } from 'lucide-react';
 import { formatCPF } from '../../lib/format-utils';
+import { gerarCartaAnuencia } from '../../lib/pdf-anuencia';
+import { FileDown } from 'lucide-react';
 
 interface Confrontante {
     nome: string;
@@ -49,6 +51,21 @@ export default function ConfrontacoesPanel() {
     const [saved, setSaved] = useState(false);
     const [confrontantes, setConfrontantes] = useState<Confrontante[]>([]);
     const [error, setError] = useState('');
+    const [topografo, setTopografo] = useState({ nome: 'Topógrafo Resp.', crea: '0000000', empresa: '' });
+
+    useEffect(() => {
+        if (isTopografo) {
+            apiClient.getPerfilMe().then(res => {
+                if (res.data) {
+                    setTopografo({
+                        nome: res.data.nome_completo || res.data.email || 'Topógrafo',
+                        crea: res.data.crea || 'N/D',
+                        empresa: res.data.empresa || ''
+                    });
+                }
+            });
+        }
+    }, [isTopografo]);
 
     useEffect(() => {
         if (!loteAtual) return;
@@ -90,6 +107,38 @@ export default function ConfrontacoesPanel() {
         setConfrontantes(confrontantes.map((c, i) =>
             i === idx ? { ...c, [field]: value } : c
         ));
+    };
+
+    const handleGerarAnuencia = (idx: number) => {
+        if (!loteAtual) return;
+        const viz = confrontantes[idx];
+        if (!viz.nome || !viz.cpf) {
+            toast.error('Preencha Nome e CPF do vizinho primeiro');
+            return;
+        }
+
+        gerarCartaAnuencia({
+            vizinho: {
+                nome: viz.nome,
+                cpf: viz.cpf,
+                imovel: viz.imovel || 'Imóvel Confrontante',
+                matricula: viz.matricula || 'N/D',
+            },
+            cliente: {
+                nome: loteAtual.nome_cliente || 'Cliente',
+                cpf: loteAtual.cpf_cnpj_cliente || '',
+                imovel: loteAtual.denominacao_imovel || 'Imóvel Objeto',
+                matricula: loteAtual.matricula_imovel || 'N/D',
+                municipio: loteAtual.municipio || '',
+                uf: loteAtual.uf || '',
+            },
+            topografo: {
+                nome: topografo.nome,
+                crea: topografo.crea,
+                empresa: topografo.empresa,
+            }
+        });
+        toast.success(`Anuência gerada para ${viz.nome}`);
     };
 
     const salvar = async () => {
@@ -167,10 +216,13 @@ export default function ConfrontacoesPanel() {
                                     {DIR_ICON[c.direcao]} Confrontante {i + 1}
                                 </span>
                                 {isTopografo && (
+                                    <button className="panel-btn panel-btn--sm" title="Gerar Carta de Anuência (PDF)" onClick={() => handleGerarAnuencia(i)}>
+                                        <FileDown size={14} /> Anuência
+                                    </button>
                                     <button className="panel-btn panel-btn--danger panel-btn--sm" onClick={() => removeConfrontante(i)}>
                                         <Trash2 size={12} />
                                     </button>
-                                )}
+                                </div>
                             </div>
 
                             <label className="panel-label">Direção</label>

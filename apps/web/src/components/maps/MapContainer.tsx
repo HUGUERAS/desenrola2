@@ -61,7 +61,7 @@ export default function MapContainer({
     onLoteClick,
     zoomTo,
 }: MapContainerProps) {
-    const { setCursorCoords, activeTool, setToolResult, sketchTool, setSketchTool } = useApp();
+    const { setCursorCoords, activeTool, setToolResult, sketchTool, setSketchTool, bufferDistance } = useApp();
     const mapDivRef = useRef<HTMLDivElement>(null);
     const mapRef = useRef<maplibregl.Map | null>(null);
     const drawRef = useRef<InstanceType<typeof MapboxDraw> | null>(null);
@@ -355,6 +355,7 @@ export default function MapContainer({
         map: mapRef.current,
         activeTool,
         onToolResult: setToolResult,
+        bufferDistance,
     });
 
     return (

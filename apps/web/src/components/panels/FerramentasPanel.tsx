@@ -17,11 +17,12 @@ export default function FerramentasPanel() {
     activeTool, setActiveTool,
     activeToolCategory, setActiveToolCategory,
     toolResult, setToolResult,
+    bufferDistance, setBufferDistance,
   } = useApp();
 
   const [toolInfo, setToolInfo] = useState<string | null>(null);
   const [toolError, setToolError] = useState<string | null>(null);
-  const [bufferDistance, setBufferDistance] = useState(10);
+
 
   // Keyboard shortcuts
   useToolShortcuts({
