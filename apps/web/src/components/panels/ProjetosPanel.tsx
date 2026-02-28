@@ -1,271 +1,377 @@
 /**
- * ProjetosPanel — CRUD de projetos no sidebar
+ * ProjetosPanel — Painel para listar e gerenciar projetos.
+ * Permite criar novos projetos, selecionar um projeto para trabalhar,
+ * e visualizar informações básicas de cada um.
  */
-import { useState, useEffect, useMemo } from 'react';
-import { toast } from 'sonner';
-import { useApp } from '../../pages/AppShell';
+import { useState, useEffect, useCallback } from 'react';
+import { useApp, type Projeto } from '../../pages/AppShell'; // Importa Projeto do AppShell types
 import apiClient from '../../services/api';
-import {
-    getStatusColor,
-    getStatusLabel,
-    PROJECT_STATUS_COLOR,
-    PROJECT_STATUS_LABEL,
-} from '../../features/app-shell/status';
-import { FolderOpen, Plus, Pencil, Trash2, Loader2, Search } from 'lucide-react';
+import { Plus, Users, Loader2, Search, Filter, Pencil, Trash2, PlusCircle, FileText, Layers, MapPin } from 'lucide-react';
+import { cn } from '../../lib/utils'; // Função utilitária para classes CSS condicionais (tailwindcss)
 
-export type ProjetoStatus = 'RASCUNHO' | 'EM_ANDAMENTO' | 'CONCLUIDO' | 'ARQUIVADO';
-
-interface Projeto {
-    id: number;
-    nome: string;
-    descricao?: string;
-    tipo: string;
-    status: ProjetoStatus | string;
-    criado_em?: string;
+interface ProjectCardProps {
+    projeto: Projeto;
+    isActive: boolean;
+    onClick: () => void;
+    onEdit?: () => void;
+    onDelete?: () => void;
+    onAddLote?: () => void;
 }
 
-type TabFiltro = 'pendentes' | 'em_andamento' | 'finalizados' | 'todos';
-type Ordenacao = 'status' | 'nome';
-type TipoFiltro = 'todos' | 'INDIVIDUAL' | 'LOTEAMENTO';
+// Componente para exibir um único projeto na lista
+const ProjectCard = ({
+    projeto,
+    isActive,
+    onClick,
+    onEdit,
+    onDelete,
+    onAddLote,
+}: ProjectCardProps) => {
+    const { role } = useApp(); // Para verificar se o usuário é topógrafo e pode editar/excluir
+    const isTopografo = role === 'topografo';
 
-const PENDENTES_STATUSES: string[] = ['RASCUNHO'];
-const EM_ANDAMENTO_STATUSES: string[] = ['EM_ANDAMENTO'];
-const FINALIZADOS_STATUSES: string[] = ['CONCLUIDO', 'ARQUIVADO'];
+    // Função auxiliar para formatar a data
+    const formatDate = (dateString: string | null) => {
+        if (!dateString) return 'N/D';
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        } catch {
+            return dateString; // Retorna a string original se houver erro na formatação
+        }
+    };
 
+    return (
+        <div
+            className={cn(
+                'project-card',
+                isActive ? 'project-card--active' : '',
+                'cursor-pointer hover:bg-gray-50'
+            )}
+            onClick={onClick}
+        >
+            <div className="project-card-header">
+                <div className="project-card-title">
+                    <Users size={20} className="mr-2 text-gray-500" />
+                    <h4 className="text-lg font-semibold truncate max-w-[200px]">{projeto.nomeProjeto}</h4>
+                </div>
+                <span className={`project-status project-status--${projeto.statusProjeto?.toLowerCase() || 'rascunho'}`}>
+                    {projeto.statusProjeto || 'Rascunho'}
+                </span>
+            </div>
+
+            <div className="project-card-body">
+                <p className="text-sm text-gray-600 truncate max-w-[250px]">Cliente: {projeto.nomeCliente || 'Sem Cliente'}</p>
+                <p className="text-xs text-gray-500">{projeto.municipio}, {projeto.uf}</p>
+                <div className="project-card-meta">
+                    <span className="text-xs text-gray-500">Lotes: {projeto.lotes?.length || 0}</span>
+                    <span className="text-xs text-gray-500">Atualizado: {formatDate(projeto.dataUltimaAtividade || projeto.dataCriacao)}</span>
+                </div>
+            </div>
+
+            {isTopografo && (
+                <div className="project-card-actions">
+                    <button onClick={onAddLote} title="Adicionar Lote a este Projeto"><PlusCircle size={18} className="text-blue-600" /></button>
+                    <button onClick={onEdit} title="Editar Projeto"><Pencil size={18} className="text-gray-600" /></button>
+                    <button onClick={onDelete} title="Excluir Projeto"><Trash2 size={18} className="text-red-600" /></button>
+                </div>
+            )}
+        </div>
+    );
+};
+
+// Componente principal do Painel de Projetos
 export default function ProjetosPanel() {
-    const { setProjetoAtual, setPanel } = useApp();
-    const [projetos, setProjetos] = useState<Projeto[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
-    const [tab, setTab] = useState<TabFiltro>('todos');
-    const [showForm, setShowForm] = useState(false);
-    const [editId, setEditId] = useState<number | null>(null);
-    const [formData, setFormData] = useState({ nome: '', descricao: '', tipo: 'INDIVIDUAL' });
-    const [query, setQuery] = useState('');
-    const [ordenacao, setOrdenacao] = useState<Ordenacao>('status');
-    const [tipoFiltro, setTipoFiltro] = useState<TipoFiltro>('todos');
+    const { 
+        projetos, setProjetos, // Estado para a lista de projetos
+        projetoAtual, setProjetoAtual, // Projeto atualmente selecionado
+        activeTool, setActiveTool, // Para gerenciar ferramentas do mapa
+        panel, setPanel, // Para controlar o painel ativo na sidebar
+        setMapZoomTo,
+        refreshUser, // Para recarregar dados do usuário se necessário
+        role, // Role do usuário (topografo, etc.)
+        clearSelection // Limpa a seleção do mapa quando muda de projeto
+    } = useApp();
 
-    const carregar = async () => {
-        setLoading(true);
-        setError('');
-        try {
-            const res = await apiClient.getProjects();
-            if (res.data) setProjetos(res.data as unknown as Projeto[]);
-            else setError(res.error || 'Erro ao carregar');
-        } catch {
-            setError('Erro de conexão');
-        } finally {
-            setLoading(false);
-        }
-    };
+    const [loadingProjects, setLoadingProjects] = useState(true);
+    const [creatingProject, setCreatingProject] = useState(false);
+    const [editingProject, setEditingProject] = useState<Projeto | null>(null);
+    const [deletingProjectId, setDeletingProjectId] = useState<number | null>(null);
 
-    useEffect(() => { carregar(); }, []);
-
-    const { filtrados, counts } = useMemo(() => {
-        const pendentes = projetos.filter((p) => PENDENTES_STATUSES.includes(p.status));
-        const emAndamento = projetos.filter((p) => EM_ANDAMENTO_STATUSES.includes(p.status));
-        const finalizados = projetos.filter((p) => FINALIZADOS_STATUSES.includes(p.status));
-        const baseFiltrada =
-            tab === 'pendentes' ? pendentes :
-                tab === 'em_andamento' ? emAndamento :
-                    tab === 'finalizados' ? finalizados : projetos;
-
-        const porTipo =
-            tipoFiltro === 'todos'
-                ? baseFiltrada
-                : baseFiltrada.filter((p) => p.tipo === tipoFiltro);
-
-        const q = query.trim().toLowerCase();
-        const porBusca = q
-            ? porTipo.filter((p) =>
-                `${p.nome} ${p.descricao || ''} ${p.tipo}`.toLowerCase().includes(q)
-            )
-            : porTipo;
-
-        const statusPriority: Record<string, number> = {
-            EM_ANDAMENTO: 0,
-            RASCUNHO: 1,
-            CONCLUIDO: 2,
-            ARQUIVADO: 3,
-        };
-
-        const filtrados = [...porBusca].sort((a, b) => {
-            if (ordenacao === 'nome') return a.nome.localeCompare(b.nome);
-            const diff = (statusPriority[a.status] ?? 99) - (statusPriority[b.status] ?? 99);
-            if (diff !== 0) return diff;
-            return a.nome.localeCompare(b.nome);
-        });
-
-        return {
-            filtrados,
-            counts: {
-                pendentes: pendentes.length,
-                em_andamento: emAndamento.length,
-                finalizados: finalizados.length,
-                todos: projetos.length,
-            },
-        };
-    }, [projetos, tab, query, ordenacao, tipoFiltro]);
-
-    const salvar = async () => {
-        try {
-            if (editId) {
-                await apiClient.updateProject(editId, formData);
-                toast.success('Projeto atualizado');
-            } else {
-                await apiClient.createProject(formData);
-                toast.success('Projeto criado');
+    // Carregar projetos ao montar o componente
+    useEffect(() => {
+        const loadProjects = async () => {
+            setLoadingProjects(true);
+            try {
+                const res = await apiClient.getProjects();
+                if (res.data) {
+                    setProjetos(res.data as Projeto[]);
+                } else if (res.error) {
+                    console.error("Erro ao carregar projetos:", res.error);
+                    // Tratar erro (ex: exibir mensagem para o usuário)
+                }
+            } catch (err) {
+                console.error("Erro na requisição para carregar projetos:", err);
+                // Tratar erro de rede ou inesperado
+            } finally {
+                setLoadingProjects(false);
             }
-            setShowForm(false);
-            setEditId(null);
-            setFormData({ nome: '', descricao: '', tipo: 'INDIVIDUAL' });
-            carregar();
-        } catch {
-            setError('Erro ao salvar');
-            toast.error('Erro ao salvar');
-        }
-    };
+        };
+        loadProjects();
+    }, [setProjetos]);
 
-    const excluir = async (id: number) => {
-        if (!confirm('Excluir projeto?')) return;
+    // Handler para selecionar um projeto
+    const handleSelectProject = useCallback((projeto: Projeto) => {
+        setProjetoAtual(projeto);
+        // Ao selecionar um novo projeto, desliga ferramentas ativas e limpa seleções do mapa
+        setActiveTool(null);
+        setMapZoomTo(null); // Limpa zoom anterior
+        clearSelection(); // Limpa seleção de lotes/vértices no mapa
+        // Opcional: Mudar o painel para o de lotes desse projeto
+        // setPanel('lotes');
+    }, [setProjetoAtual, setActiveTool, setMapZoomTo, clearSelection, setPanel]);
+
+    // Handler para criar um novo projeto
+    const handleCreateProject = async (newProjectData: Omit<Projeto, 'id' | 'statusProjeto' | 'dataCriacao' | 'dataUltimaAtividade' | 'responsavelTopografoId' | 'lotes'>) => {
+        setCreatingProject(true);
         try {
-            await apiClient.deleteProject(id);
-            toast.success('Projeto excluído');
-            carregar();
-        } catch {
-            setError('Erro ao excluir');
-            toast.error('Erro ao excluir');
+            // API espera Dict, mas nosso model é Projeto. Precisamos mapear.
+            const payload = {
+                nomeProjeto: newProjectData.nomeProjeto,
+                nomeCliente: newProjectData.nomeCliente,
+                cpfCnpjCliente: newProjectData.cpfCnpjCliente,
+                municipio: newProjectData.municipio,
+                uf: newProjectData.uf,
+                // statusProjeto e outros campos são definidos no backend
+            };
+            const res = await apiClient.createProject(payload);
+            if (res.data) {
+                // Atualiza a lista de projetos localmente com o novo projeto
+                setProjetos(prev => [...prev, res.data as Projeto]);
+                toast.sonner.success('Projeto criado com sucesso!');
+                return true; // Indica sucesso
+            } else {
+                throw new Error(res.error || 'Falha ao criar projeto');
+            }
+        } catch (err: any) {
+            console.error('Erro ao criar projeto:', err);
+            toast.error(err.message || 'Falha ao criar projeto');
+            return false; // Indica falha
+        } finally {
+            setCreatingProject(false);
         }
     };
 
-    const editar = (p: Projeto) => {
-        setEditId(p.id);
-        setFormData({ nome: p.nome, descricao: p.descricao || '', tipo: p.tipo });
-        setShowForm(true);
+    // Handler para editar um projeto
+    const handleEditProject = async (projectId: number, updatedData: Partial<Omit<Projeto, 'id' | 'statusProjeto' | 'dataCriacao' | 'dataUltimaAtividade' | 'responsavelTopografoId' | 'lotes'>>) => {
+        setEditingProject({ ...editingProject!, ...updatedData }); // Atualiza estado local para re-renderizar o form
+        try {
+            const res = await apiClient.updateProject(projectId, updatedData);
+            if (res.data) {
+                // Atualiza a lista de projetos localmente
+                setProjetos(prev => prev.map(p => p.id === projectId ? res.data as Projeto : p));
+                toast.success('Projeto atualizado com sucesso!');
+                setEditingProject(null); // Fecha o modal de edição
+                return true;
+            } else {
+                throw new Error(res.error || 'Falha ao atualizar projeto');
+            }
+        } catch (err: any) {
+            console.error('Erro ao editar projeto:', err);
+            toast.error(err.message || 'Falha ao editar projeto');
+            return false;
+        }
     };
 
-    const selecionar = (p: Projeto) => {
-        setProjetoAtual(p);
-        setPanel('lotes');
+    // Handler para excluir um projeto
+    const handleDeleteProject = async (projectId: number) => {
+        setDeletingProjectId(projectId);
+        try {
+            const res = await apiClient.deleteProject(projectId);
+            if (res.data) { // Supabase delete retorna { count: 1 } em caso de sucesso
+                setProjetos(prev => prev.filter(p => p.id !== projectId));
+                // Se o projeto excluído era o projeto atual, desmarca-o
+                if (projetoAtual?.id === projectId) {
+                    setProjetoAtual(null);
+                }
+                toast.success('Projeto excluído com sucesso!');
+                setDeletingProjectId(null);
+            } else {
+                throw new Error(res.error || 'Falha ao excluir projeto');
+            }
+        } catch (err: any) {
+            console.error('Erro ao excluir projeto:', err);
+            toast.error(err.message || 'Falha ao excluir projeto');
+            setDeletingProjectId(null);
+            return false;
+        }
     };
 
-    if (loading) return <div className="panel-loading"><Loader2 size={20} className="spin" /> Carregando...</div>;
+    // --- Lógica do Modal de Criação/Edição ---
+    const [showProjectModal, setShowProjectModal] = useState(false);
+    const [currentProjectForm, setCurrentProjectForm] = useState<Omit<Projeto, 'id' | 'statusProjeto' | 'dataCriacao' | 'dataUltimaAtividade' | 'responsavelTopografoId' | 'lotes'> | null>(null);
+
+    const openCreateModal = () => {
+        setCurrentProjectForm({ nomeProjeto: '', nomeCliente: '', cpfCnpjCliente: '', municipio: '', uf: '', statusProjeto: 'Rascunho' } as any);
+        setShowProjectModal(true);
+    };
+
+    const openEditModal = (projeto: Projeto) => {
+        setCurrentProjectForm({
+            id: projeto.id,
+            nomeProjeto: projeto.nomeProjeto,
+            nomeCliente: projeto.nomeCliente,
+            cpfCnpjCliente: projeto.cpfCnpjCliente,
+            municipio: projeto.municipio,
+            uf: projeto.uf,
+            statusProjeto: projeto.statusProjeto || 'Rascunho',
+            descricao: projeto.descricao,
+        } as any);
+        setShowProjectModal(true);
+    };
+
+    const handleSaveProject = async (formData: Omit<Projeto, 'id' | 'statusProjeto' | 'dataCriacao' | 'dataUltimaAtividade' | 'responsavelTopografoId' | 'lotes'> & { id?: number }) => {
+        if (formData.id) { // Edição
+            return handleEditProject(formData.id, formData as Partial<Omit<Projeto, 'id' | 'statusProjeto' | 'dataCriacao' | 'dataUltimaAtividade' | 'responsavelTopografoId' | 'lotes'>>);
+        } else { // Criação
+            return handleCreateProject(formData as Omit<Projeto, 'id' | 'statusProjeto' | 'dataCriacao' | 'dataUltimaAtividade' | 'responsavelTopografoId' | 'lotes'>);
+        }
+    };
+
+    // Componente simples para o modal de form
+    const ProjectFormModal = ({ project, onClose, onSave, isCreating }: {
+        project: Omit<Projeto, 'id' | 'statusProjeto' | 'dataCriacao' | 'dataUltimaAtividade' | 'responsavelTopografoId' | 'lotes'> & { id?: number } | null;
+        onClose: () => void;
+        onSave: (data: Omit<Projeto, 'id' | 'statusProjeto' | 'dataCriacao' | 'dataUltimaAtividade' | 'responsavelTopografoId' | 'lotes'> & { id?: number }) => Promise<boolean>;
+        isCreating: boolean;
+    }) => {
+        const [formData, setFormData] = useState(project || {
+            nomeProjeto: '', nomeCliente: '', cpfCnpjCliente: '', municipio: '', uf: '', statusProjeto: 'Rascunho', descricao: ''
+        });
+        const [saving, setSaving] = useState(false);
+
+        const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+            const { name, value } = e.target;
+            setFormData(prev => ({ ...prev, [name]: value }));
+        };
+
+        const handleSubmit = async () => {
+            setSaving(true);
+            const success = await onSave(formData as any);
+            setSaving(false);
+            if (success) {
+                onClose();
+            }
+        };
+
+        return (
+            <div className="modal-backdrop">
+                <div className="modal-content">
+                    <div className="modal-header">
+                        <h3>{formData.id ? 'Editar Projeto' : 'Novo Projeto'}</h3>
+                        <button onClick={onClose}>&times;</button>
+                    </div>
+                    <div className="modal-body">
+                        <label>Nome do Projeto *</label>
+                        <input type="text" name="nomeProjeto" value={formData.nomeProjeto} onChange={handleChange} required />
+
+                        <label>Nome do Cliente *</label>
+                        <input type="text" name="nomeCliente" value={formData.nomeCliente} onChange={handleChange} required />
+
+                        <label>CPF/CNPJ do Cliente</label>
+                        <input type="text" name="cpfCnpjCliente" value={formData.cpfCnpjCliente || ''} onChange={handleChange} />
+
+                        <label>Município</label>
+                        <input type="text" name="municipio" value={formData.municipio || ''} onChange={handleChange} />
+
+                        <label>UF</label>
+                        <input type="text" name="uf" value={formData.uf || ''} onChange={handleChange} maxLength={2} style={{ width: '60px' }} />
+
+                        <label>Status</label>
+                        <select name="statusProjeto" value={formData.statusProjeto || 'Rascunho'} onChange={handleChange} >
+                            <option value="Rascunho">Rascunho</option>
+                            <option value="Em Andamento">Em Andamento</option>
+                            <option value="Aguardando Aprovação">Aguardando Aprovação</option>
+                            <option value="Concluído">Concluído</option>
+                            <option value="Pausado">Pausado</option>
+                            <option value="Cancelado">Cancelado</option>
+                        </select>
+
+                        <label>Descrição</label>
+                        <textarea name="descricao" value={formData.descricao || ''} onChange={handleChange} rows={3} />
+                    </div>
+                    <div className="modal-footer">
+                        <button onClick={onClose} disabled={saving}>Cancelar</button>
+                        <button onClick={handleSubmit} disabled={saving || !formData.nomeProjeto || !formData.nomeCliente}>
+                            {saving ? <><Loader2 size={14} className='spin'/> Salvando...</> : 'Salvar'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    // Remover o modal de edição existente se houver e adicionar o novo
+    // Isso pode ser otimizado, mas para a correção rápida funciona.
+    // Idealmente, a lógica de modal deve ser mais genérica.
 
     return (
         <div className="panel">
             <div className="panel-header">
-                <h3>📋 Projetos</h3>
-                <button className="panel-btn-sm" onClick={() => { setShowForm(true); setEditId(null); setFormData({ nome: '', descricao: '', tipo: 'INDIVIDUAL' }); }}>
-                    <Plus size={14} /> Novo
-                </button>
-            </div>
-
-            {error && <div className="panel-error">{error}</div>}
-
-            <div className="panel-tabs">
-                {(['pendentes', 'em_andamento', 'finalizados', 'todos'] as TabFiltro[]).map((t) => (
-                    <button
-                        key={t}
-                        className={`panel-tab ${tab === t ? 'active' : ''}`}
-                        onClick={() => setTab(t)}
-                    >
-                        {t === 'pendentes' ? `Pendentes (${counts.pendentes})` :
-                            t === 'em_andamento' ? `Em Andamento (${counts.em_andamento})` :
-                                t === 'finalizados' ? `Finalizados (${counts.finalizados})` :
-                                    `Todos (${counts.todos})`}
+                <h3>👥 Projetos</h3>
+                {role === 'topografo' && (
+                    <button className="panel-btn panel-btn--sm" onClick={openCreateModal}>
+                        <Plus size={14} /> Novo Projeto
                     </button>
-                ))}
+                )}
             </div>
 
-            <div className="panel-form">
-                <div className="panel-search">
-                    <Search size={12} />
-                    <input
-                        className="panel-input"
-                        placeholder="Buscar por nome, descrição ou tipo"
-                        value={query}
-                        onChange={(e) => setQuery(e.target.value)}
-                    />
+            {loadingProjects ? (
+                <div className="panel-loading"><Loader2 size={20} className="spin" /> Carregando projetos...</div>
+            ) : projetos.length === 0 ? (
+                <div className="panel-empty">
+                    <Users size={24} />
+                    <p>Nenhum projeto encontrado.</p>
+                    {role === 'topografo' && (
+                        <button className="panel-btn panel-btn--primary" onClick={openCreateModal}>
+                            <Plus size={14} /> Criar Novo Projeto
+                        </button>
+                    )}
                 </div>
-                <select
-                    className="panel-input"
-                    value={ordenacao}
-                    onChange={(e) => setOrdenacao(e.target.value as Ordenacao)}
-                >
-                    <option value="status">Ordenar: prioridade de status</option>
-                    <option value="nome">Ordenar: nome</option>
-                </select>
-                <select
-                    className="panel-input"
-                    value={tipoFiltro}
-                    onChange={(e) => setTipoFiltro(e.target.value as TipoFiltro)}
-                >
-                    <option value="todos">Tipo: todos</option>
-                    <option value="INDIVIDUAL">Tipo: individual</option>
-                    <option value="LOTEAMENTO">Tipo: loteamento</option>
-                </select>
-            </div>
-
-            {showForm && (
-                <div className="panel-form">
-                    <input
-                        className="panel-input"
-                        placeholder="Nome do projeto"
-                        value={formData.nome}
-                        onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                    />
-                    <textarea
-                        className="panel-input"
-                        placeholder="Descrição (opcional)"
-                        value={formData.descricao}
-                        onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
-                        rows={2}
-                    />
-                    <select
-                        className="panel-input"
-                        value={formData.tipo}
-                        onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
-                    >
-                        <option value="INDIVIDUAL">Individual</option>
-                        <option value="LOTEAMENTO">Loteamento</option>
-                    </select>
-                    <div className="panel-form-actions">
-                        <button className="panel-btn panel-btn--primary" onClick={salvar}>
-                            {editId ? 'Atualizar' : 'Criar'}
-                        </button>
-                        <button className="panel-btn" onClick={() => { setShowForm(false); setEditId(null); }}>
-                            Cancelar
-                        </button>
-                    </div>
+            ) : (
+                <div className="project-list">
+                    {projetos.map((p) => (
+                        <ProjectCard
+                            key={p.id}
+                            projeto={p}
+                            isActive={projetoAtual?.id === p.id}
+                            onClick={() => handleSelectProject(p)}
+                            onEdit={() => openEditModal(p)}
+                            onDelete={() => {
+                                // Confirmação antes de deletar
+                                if (window.confirm(`Tem certeza que deseja excluir o projeto "${p.nomeProjeto}"?`)) {
+                                    handleDeleteProject(p.id);
+                                }
+                            }}
+                            onAddLote={() => {
+                                // Lógica para adicionar lote a este projeto
+                                // Poderia abrir o painel de lotes ou navegar para a tela de lotes
+                                alert('Funcionalidade Adicionar Lote a Projeto ainda não implementada.');
+                            }}
+                        />
+                    ))}
                 </div>
             )}
 
-            <div className="panel-list">
-                {filtrados.length === 0 && !showForm && (
-                    <div className="panel-empty">
-                        <FolderOpen size={24} />
-                        <p>Nenhum projeto</p>
-                    </div>
-                )}
-                {filtrados.map((p) => (
-                    <div key={p.id} className="panel-card" onClick={() => selecionar(p)}>
-                        <div className="panel-card-header">
-                            <span className="panel-card-title">{p.nome}</span>
-                            <span className="panel-card-badge" style={{ background: getStatusColor(p.status, PROJECT_STATUS_COLOR) }}>
-                                {getStatusLabel(p.status, PROJECT_STATUS_LABEL)}
-                            </span>
-                        </div>
-                        {p.descricao && <p className="panel-card-desc">{p.descricao}</p>}
-                        <div className="panel-card-meta">
-                            <span>{p.tipo}</span>
-                            <div className="panel-card-actions">
-                                <button onClick={(e) => { e.stopPropagation(); editar(p); }}><Pencil size={12} /></button>
-                                <button onClick={(e) => { e.stopPropagation(); excluir(p.id); }}><Trash2 size={12} /></button>
-                            </div>
-                        </div>
-                    </div>
-                ))}
-            </div>
+            {/* Renderiza o Modal de Criação/Edição */} 
+            {showProjectModal && currentProjectForm && (
+                <ProjectFormModal
+                    project={currentProjectForm}
+                    onClose={() => setShowProjectModal(false)}
+                    onSave={handleSaveProject}
+                    isCreating={!currentProjectForm.id}
+                />
+            )}
         </div>
     );
 }

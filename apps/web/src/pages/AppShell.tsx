@@ -8,7 +8,7 @@ import apiClient from '../services/api';
 import { supabase } from '../lib/supabase';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
-import StatusBar from '../components/StatusBar';
+import ProjetosPanel from '../components/panels/ProjetosPanel'; // Importar o novo painel
 import MapContainer, { type LoteGeometry } from '../components/maps/MapContainer';
 import type { ToolId, ToolCategory, ToolResult, LayerConfig } from '../types/tools';
 import AppLoading from '../features/app-shell/components/AppLoading';
@@ -49,6 +49,11 @@ interface AppContextValue extends AppState {
     setMapZoomTo: (geojson: Record<string, any> | null) => void;
     refreshUser: () => Promise<void>;
     logout: () => void;
+    // Estados de Gerenciamento de Projetos
+    projetos: Projeto[];
+    setProjetos: (proj: Projeto[]) => void;
+    projetoAtual: Projeto | null;
+    setProjetoAtual: (proj: Projeto | null) => void;
     // Sistema de seleção
     selectedPolygons: string[]; // IDs dos polígonos selecionados
     setSelectedPolygons: (ids: string[]) => void;
