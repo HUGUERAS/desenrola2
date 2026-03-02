@@ -216,13 +216,15 @@ export default function ConfrontacoesPanel() {
                                     {DIR_ICON[c.direcao]} Confrontante {i + 1}
                                 </span>
                                 {isTopografo && (
-                                    <button className="panel-btn panel-btn--sm" title="Gerar Carta de Anuência (PDF)" onClick={() => handleGerarAnuencia(i)}>
-                                        <FileDown size={14} /> Anuência
-                                    </button>
-                                    <button className="panel-btn panel-btn--danger panel-btn--sm" onClick={() => removeConfrontante(i)}>
-                                        <Trash2 size={12} />
-                                    </button>
-                                </div>
+                                    <div style={{ display: 'flex', gap: 6 }}>
+                                        <button className="panel-btn panel-btn--sm" title="Gerar Carta de Anuência (PDF)" onClick={() => handleGerarAnuencia(i)}>
+                                            <FileDown size={14} /> Anuência
+                                        </button>
+                                        <button className="panel-btn panel-btn--danger panel-btn--sm" onClick={() => removeConfrontante(i)}>
+                                            <Trash2 size={12} />
+                                        </button>
+                                    </div>
+                                )}
                             </div>
 
                             <label className="panel-label">Direção</label>
