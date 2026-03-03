@@ -36,16 +36,34 @@ END $$;
 -- Policies do portal anon via token
 ALTER TABLE confrontacoes ENABLE ROW LEVEL SECURITY;
 
+-- Função auxiliar para obter token da requisição
+CREATE OR REPLACE FUNCTION get_confrontante_token()
+RETURNS UUID
+LANGUAGE SQL
+STABLE
+AS $$
+  SELECT NULLIF(current_setting('request.jwt.claims', true)::json->>'confrontante_token', '')::UUID;
+$$;
+
 CREATE POLICY "confrontacoes: anon select por token" ON confrontacoes
   FOR SELECT
   TO anon
-  USING (token_acesso IS NOT NULL);
+  USING (
+    token_acesso IS NOT NULL
+    AND token_acesso = get_confrontante_token()
+  );
 
 CREATE POLICY "confrontacoes: anon update por token" ON confrontacoes
   FOR UPDATE
   TO anon
-  USING (token_acesso IS NOT NULL)
-  WITH CHECK (token_acesso IS NOT NULL);
+  USING (
+    token_acesso IS NOT NULL
+    AND token_acesso = get_confrontante_token()
+  )
+  WITH CHECK (
+    token_acesso IS NOT NULL
+    AND token_acesso = get_confrontante_token()
+  );
 
 -- Documentos vinculados a confrontações acessíveis por token
 ALTER TABLE documentos ENABLE ROW LEVEL SECURITY;
@@ -58,6 +76,7 @@ CREATE POLICY "documentos: anon select por token confrontante" ON documentos
       SELECT c.id
       FROM confrontacoes c
       WHERE c.token_acesso IS NOT NULL
+        AND c.token_acesso = get_confrontante_token()
     )
   );
 
@@ -69,5 +88,6 @@ CREATE POLICY "documentos: anon insert por token confrontante" ON documentos
       SELECT c.id
       FROM confrontacoes c
       WHERE c.token_acesso IS NOT NULL
+        AND c.token_acesso = get_confrontante_token()
     )
   );
