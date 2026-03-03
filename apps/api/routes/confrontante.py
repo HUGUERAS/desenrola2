@@ -127,7 +127,7 @@ async def upload_documento_confrontante(
 
         nome_seguro = re.sub(r"[^a-zA-Z0-9._-]", "_", nome_original).replace("..", "_")
         ts = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S%f")
-        storage_path = f"confrontante/{token}/{ts}_{nome_seguro}"
+        storage_path = f"confrontante/{confrontacao['id']}/{ts}_{nome_seguro}"
 
         supabase.storage.from_("documentos").upload(
             storage_path,
