@@ -14,9 +14,6 @@ ALTER TABLE confrontacoes
   ADD COLUMN IF NOT EXISTS data_contato TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS data_docs_recebidos TIMESTAMPTZ;
 
--- Índice dedicado para lookup por token
-CREATE INDEX IF NOT EXISTS idx_confrontacoes_token_acesso ON confrontacoes(token_acesso);
-
 -- Novo vínculo opcional do documento com confrontante
 ALTER TABLE documentos
   ADD COLUMN IF NOT EXISTS confrontante_id BIGINT;
