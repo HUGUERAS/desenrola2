@@ -1,42 +1,73 @@
--- Confrontante portal: token, status e vínculo de documentos
+-- =============================================
+-- Portal do confrontante: campos e políticas
+-- =============================================
 
-alter table if exists public.confrontacoes
-  add column if not exists token_acesso uuid unique default gen_random_uuid(),
-  add column if not exists status text default 'identified_no_contact',
-  add column if not exists whatsapp text,
-  add column if not exists observacoes text,
-  add column if not exists data_contato timestamptz,
-  add column if not exists data_docs_recebidos timestamptz;
+-- Extensão para gen_random_uuid (idempotente)
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
-create index if not exists idx_confrontacoes_token_acesso
-  on public.confrontacoes(token_acesso);
+-- Novos campos em confrontacoes
+ALTER TABLE confrontacoes
+  ADD COLUMN IF NOT EXISTS token_acesso UUID UNIQUE DEFAULT gen_random_uuid(),
+  ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'identified_no_contact',
+  ADD COLUMN IF NOT EXISTS whatsapp TEXT,
+  ADD COLUMN IF NOT EXISTS observacoes TEXT,
+  ADD COLUMN IF NOT EXISTS data_contato TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS data_docs_recebidos TIMESTAMPTZ;
 
-alter table if exists public.documentos
-  add column if not exists confrontante_id bigint references public.confrontacoes(id) on delete set null;
+-- Novo vínculo opcional do documento com confrontante
+ALTER TABLE documentos
+  ADD COLUMN IF NOT EXISTS confrontante_id BIGINT;
 
--- Acesso público controlado por token
-alter table if exists public.confrontacoes enable row level security;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'documentos_confrontante_id_fkey'
+  ) THEN
+    ALTER TABLE documentos
+      ADD CONSTRAINT documentos_confrontante_id_fkey
+      FOREIGN KEY (confrontante_id)
+      REFERENCES confrontacoes(id)
+      ON DELETE SET NULL;
+  END IF;
+END $$;
 
-drop policy if exists "Anon pode ler confrontacao por token" on public.confrontacoes;
-create policy "Anon pode ler confrontacao por token"
-  on public.confrontacoes
-  for select
-  to anon
-  using (token_acesso is not null);
+-- Policies do portal anon via token
+ALTER TABLE confrontacoes ENABLE ROW LEVEL SECURITY;
 
-drop policy if exists "Anon pode atualizar confrontacao por token" on public.confrontacoes;
-create policy "Anon pode atualizar confrontacao por token"
-  on public.confrontacoes
-  for update
-  to anon
-  using (token_acesso is not null)
-  with check (token_acesso is not null);
+CREATE POLICY "confrontacoes: anon select por token" ON confrontacoes
+  FOR SELECT
+  TO anon
+  USING (token_acesso IS NOT NULL);
 
-alter table if exists public.documentos enable row level security;
+CREATE POLICY "confrontacoes: anon update por token" ON confrontacoes
+  FOR UPDATE
+  TO anon
+  USING (token_acesso IS NOT NULL)
+  WITH CHECK (token_acesso IS NOT NULL);
 
-drop policy if exists "Anon pode inserir documentos de confrontante" on public.documentos;
-create policy "Anon pode inserir documentos de confrontante"
-  on public.documentos
-  for insert
-  to anon
-  with check (confrontante_id is not null);
+-- Documentos vinculados a confrontações acessíveis por token
+ALTER TABLE documentos ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "documentos: anon select por token confrontante" ON documentos
+  FOR SELECT
+  TO anon
+  USING (
+    confrontante_id IN (
+      SELECT c.id
+      FROM confrontacoes c
+      WHERE c.token_acesso IS NOT NULL
+    )
+  );
+
+CREATE POLICY "documentos: anon insert por token confrontante" ON documentos
+  FOR INSERT
+  TO anon
+  WITH CHECK (
+    confrontante_id IN (
+      SELECT c.id
+      FROM confrontacoes c
+      WHERE c.token_acesso IS NOT NULL
+    )
+  );
