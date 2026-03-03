@@ -47,7 +47,6 @@ from routes.lotes import router as lotes_router
 from routes.financeiro import router as financeiro_router
 from routes.documents import router as documents_router
 from routes.topology import router as topology_router
-from routes.confrontante import router as confrontante_router
 
 app = FastAPI(
     title="Desenrola API",
@@ -70,7 +69,6 @@ app.include_router(lotes_router)
 app.include_router(financeiro_router)
 app.include_router(documents_router)
 app.include_router(topology_router)
-app.include_router(confrontante_router)
 
 
 # ── Health ──
