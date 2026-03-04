@@ -6,8 +6,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useApp, type Projeto } from '../../pages/AppShell'; // Importa Projeto do AppShell types
 import apiClient from '../../services/api';
-import { Plus, Users, Loader2, Search, Filter, Pencil, Trash2, PlusCircle, FileText, Layers, MapPin } from 'lucide-react';
+import { Plus, Users, Loader2, Pencil, Trash2, PlusCircle } from 'lucide-react';
 import { cn } from '../../lib/utils'; // Função utilitária para classes CSS condicionais (tailwindcss)
+import { toast } from 'sonner';
+import { formatCPF, isValidCpfCnpj } from '../../lib/format-utils';
 
 interface ProjectCardProps {
     projeto: Projeto;
@@ -85,17 +87,15 @@ export default function ProjetosPanel() {
     const { 
         projetos, setProjetos, // Estado para a lista de projetos
         projetoAtual, setProjetoAtual, // Projeto atualmente selecionado
-        activeTool, setActiveTool, // Para gerenciar ferramentas do mapa
-        panel, setPanel, // Para controlar o painel ativo na sidebar
+        setActiveTool, // Para gerenciar ferramentas do mapa
+        setPanel, // Para controlar o painel ativo na sidebar
         setMapZoomTo,
-        refreshUser, // Para recarregar dados do usuário se necessário
         role, // Role do usuário (topografo, etc.)
         clearSelection // Limpa a seleção do mapa quando muda de projeto
     } = useApp();
 
     const [loadingProjects, setLoadingProjects] = useState(true);
     const [creatingProject, setCreatingProject] = useState(false);
-    const [editingProject, setEditingProject] = useState<Projeto | null>(null);
     const [deletingProjectId, setDeletingProjectId] = useState<number | null>(null);
 
     // Carregar projetos ao montar o componente
@@ -129,7 +129,7 @@ export default function ProjetosPanel() {
         clearSelection(); // Limpa seleção de lotes/vértices no mapa
         // Opcional: Mudar o painel para o de lotes desse projeto
         // setPanel('lotes');
-    }, [setProjetoAtual, setActiveTool, setMapZoomTo, clearSelection, setPanel]);
+    }, [setProjetoAtual, setActiveTool, setMapZoomTo, clearSelection]);
 
     // Handler para criar um novo projeto
     const handleCreateProject = async (newProjectData: Omit<Projeto, 'id' | 'statusProjeto' | 'dataCriacao' | 'dataUltimaAtividade' | 'responsavelTopografoId' | 'lotes'>) => {
@@ -148,7 +148,7 @@ export default function ProjetosPanel() {
             if (res.data) {
                 // Atualiza a lista de projetos localmente com o novo projeto
                 setProjetos(prev => [...prev, res.data as Projeto]);
-                toast.sonner.success('Projeto criado com sucesso!');
+                toast.success('Projeto criado com sucesso!');
                 return true; // Indica sucesso
             } else {
                 throw new Error(res.error || 'Falha ao criar projeto');
@@ -164,14 +164,12 @@ export default function ProjetosPanel() {
 
     // Handler para editar um projeto
     const handleEditProject = async (projectId: number, updatedData: Partial<Omit<Projeto, 'id' | 'statusProjeto' | 'dataCriacao' | 'dataUltimaAtividade' | 'responsavelTopografoId' | 'lotes'>>) => {
-        setEditingProject({ ...editingProject!, ...updatedData }); // Atualiza estado local para re-renderizar o form
         try {
             const res = await apiClient.updateProject(projectId, updatedData);
             if (res.data) {
                 // Atualiza a lista de projetos localmente
                 setProjetos(prev => prev.map(p => p.id === projectId ? res.data as Projeto : p));
                 toast.success('Projeto atualizado com sucesso!');
-                setEditingProject(null); // Fecha o modal de edição
                 return true;
             } else {
                 throw new Error(res.error || 'Falha ao atualizar projeto');
@@ -248,14 +246,22 @@ export default function ProjetosPanel() {
         const [formData, setFormData] = useState(project || {
             nomeProjeto: '', nomeCliente: '', cpfCnpjCliente: '', municipio: '', uf: '', statusProjeto: 'Rascunho', descricao: ''
         });
+        const [validationError, setValidationError] = useState('');
         const [saving, setSaving] = useState(false);
 
         const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
             const { name, value } = e.target;
-            setFormData(prev => ({ ...prev, [name]: value }));
+            const nextValue = name === 'cpfCnpjCliente' ? formatCPF(value) : value;
+            setFormData(prev => ({ ...prev, [name]: nextValue }));
+            if (validationError) setValidationError('');
         };
 
         const handleSubmit = async () => {
+            if (formData.cpfCnpjCliente && !isValidCpfCnpj(formData.cpfCnpjCliente)) {
+                setValidationError('CPF/CNPJ inválido. Revise antes de salvar.');
+                return;
+            }
+
             setSaving(true);
             const success = await onSave(formData as any);
             setSaving(false);
@@ -280,6 +286,7 @@ export default function ProjetosPanel() {
 
                         <label>CPF/CNPJ do Cliente</label>
                         <input type="text" name="cpfCnpjCliente" value={formData.cpfCnpjCliente || ''} onChange={handleChange} />
+                        {validationError && <small className="text-red-600">{validationError}</small>}
 
                         <label>Município</label>
                         <input type="text" name="municipio" value={formData.municipio || ''} onChange={handleChange} />
@@ -354,9 +361,8 @@ export default function ProjetosPanel() {
                                 }
                             }}
                             onAddLote={() => {
-                                // Lógica para adicionar lote a este projeto
-                                // Poderia abrir o painel de lotes ou navegar para a tela de lotes
-                                alert('Funcionalidade Adicionar Lote a Projeto ainda não implementada.');
+                                handleSelectProject(p);
+                                setPanel('lotes');
                             }}
                         />
                     ))}
